@@ -17,6 +17,8 @@ const puppeteer = require("puppeteer");
 const pdfParse  = require("pdf-parse");
 const { URL }   = require("url");
 const { execSync } = require('child_process');
+const { getCollection, close } = require('./db');
+
 
 // ——————————————————————————————————————————————————
 // 1) Pobri PDF linke
@@ -152,41 +154,42 @@ function extractItemsFromLines(lines,pageNum){
 // 6) Glavni zagon
 // ——————————————————————————————————————————————————
 (async()=>{
+  const coll = await getCollection('hofer');
+
   console.log("1) Gathering PDF links…");
   const links = await getPdfLinks();
   console.log("2) Downloading PDFs…");
-  const pdfDir=await downloadPdfs(links);
+  const pdfDir = await downloadPdfs(links);
 
   console.log("3) Launching browser for images…");
-  const browser=await puppeteer.launch({headless:true});
-  const slugs=links.map(u=>path.basename(new URL(u).pathname,".pdf"));
-  const imagesMap={};
-  for(const s of slugs){
-    console.log("   images for",s);
-    imagesMap[s]=await extractImagesHtml(browser,s);
+  const browser = await puppeteer.launch({headless:true});
+  const slugs = links.map(u=>path.basename(new URL(u).pathname,".pdf"));
+  const imagesMap = {};
+  for(const slug of slugs){
+    console.log("   images for",slug);
+    imagesMap[slug] = await extractImagesHtml(browser,slug);
   }
   await browser.close();
 
+  // process each PDF and insert
   for(const slug of slugs){
     console.log(`\n--- Processing ${slug}.pdf ---`);
-    const buf=await fs.readFile(path.join(pdfDir,slug+".pdf"));
-
+    const buf = await fs.readFile(path.join(pdfDir,slug+".pdf"));
     console.log("   extracting text…");
-    const pagesText=await extractTextPages(buf);
-
+    const pagesText = await extractTextPages(buf);
     console.log("   parsing pages…");
-    const pages=pagesText.map((lines,idx)=>{
-      const pageNum=idx+1;
-      const {validFrom,validTo}=extractPageDate(lines);
-      const items=extractItemsFromLines(lines,pageNum);
-      const images=imagesMap[slug][pageNum]||[];
+    const pages = pagesText.map((lines, idx) => {
+      const pageNum = idx+1;
+      const {validFrom,validTo} = extractPageDate(lines);
+      const items = extractItemsFromLines(lines,pageNum);
+      const images = imagesMap[slug][pageNum]||[];
       return { page:pageNum, validFrom, validTo, items, images };
     });
-
-    const out={ slug, pages };
-    await fs.writeJson(path.join(pdfDir,slug+".json"), out, { spaces:2 });
-    console.log("   wrote", slug+".json");
+    const doc = { slug, insertedAt: new Date(), pages };
+    await coll.insertOne(doc);
+    console.log("   inserted document for", slug);
   }
 
   console.log("\n🎉 All done!");
+  await close();
 })();

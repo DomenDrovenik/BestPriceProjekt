@@ -2,8 +2,11 @@
 
 const { chromium } = require('playwright');
 const fs = require('fs');
+const { getCollection, close } = require('./db');
 
 (async () => {
+  const coll = await getCollection('lidl');
+
   const browser = await chromium.launch({
     headless: true,
     args: ['--disable-blink-features=AutomationControlled']
@@ -62,7 +65,12 @@ const fs = require('fs');
   );
 
   console.log(`Najdenih izdelkov: ${izdelki.length}`);
-  fs.writeFileSync('tvoja-lidl-cena.json', JSON.stringify(izdelki, null, 2), 'utf-8');
+  if (izdelki.length > 0) {
+    await coll.insertMany(izdelki);
+    console.log('Vnešeno v MongoDB kolekcijo lidl');
+  }
 
+  // Cleanup
   await browser.close();
+  await close();
 })();
