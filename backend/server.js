@@ -6,6 +6,7 @@ const app = express();
 app.use(express.json());
 const PORT = 3000;
 
+
 const uri =
   "mongodb+srv://anja:anja@cluster0.bwlvpsm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
