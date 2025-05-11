@@ -146,7 +146,7 @@ async function ScrapeTus() {
         .catch(() => false);
 
       if (!hasProducts) {
-        console.log(`⏭️  Prazna podkategorija: ${subcategory}`);
+        console.log(`Prazna podkategorija: ${subcategory}`);
         await page.goto(url, { waitUntil: "networkidle2" });
         await page.waitForSelector(".sub-cat");
         continue;
