@@ -5,7 +5,6 @@ const app = express();
 app.use(express.json());
 const PORT = 3000;
 
-
 const uri =
   "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
@@ -53,7 +52,7 @@ app.get("/tus", async (req, res) => {
 app.get("/merkator", async (req, res) => {
   try {
     const merkatorData = await merkatorCollection.find({}).toArray();
-    res.status(200).json(tusData);
+    res.status(200).json(merkatorData);
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -63,7 +62,7 @@ app.get("/merkator", async (req, res) => {
 app.get("/jager", async (req, res) => {
   try {
     const jagerData = await jagerCollection.find({}).toArray();
-    res.status(200).json(tusData);
+    res.status(200).json(jagerData);
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -73,7 +72,7 @@ app.get("/jager", async (req, res) => {
 app.get("/hofer", async (req, res) => {
   try {
     const hoferData = await hoferCollection.find({}).toArray();
-    res.status(200).json(tusData);
+    res.status(200).json(hoferData);
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -83,7 +82,7 @@ app.get("/hofer", async (req, res) => {
 app.get("/lidl", async (req, res) => {
   try {
     const lidlData = await lidlCollection.find({}).toArray();
-    res.status(200).json(tusData);
+    res.status(200).json(lidlData);
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
