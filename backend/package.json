@@ -11,10 +11,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.9.0",
+    "canvas": "^3.1.0",
+    "cheerio": "^1.0.0",
     "express": "^5.1.0",
+    "fs-extra": "^11.3.0",
     "mongodb": "^6.16.0",
     "mongoose": "^8.14.2",
     "nodemon": "^3.1.10",
+    "pdfjs-dist": "^5.2.133",
     "playwright": "^1.52.0",
     "puppeteer": "^24.8.2"
   }
