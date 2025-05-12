@@ -1,0 +1,88 @@
+export const productsData = [
+    {
+      id: 1,
+      name: "Jabolka (1 kg)",
+      category: "Sadje",
+      price: 1.49,
+      image: "/img/products/apples.jpg",
+    },
+    {
+      id: 2,
+      name: "Banane (1 kg)",
+      category: "Sadje",
+      price: 1.29,
+      image: "/img/products/bananas.jpg",
+    },
+    {
+      id: 3,
+      name: "Krompir (1 kg)",
+      category: "Zelenjava",
+      price: 0.89,
+      image: "/img/products/potatoes.jpg",
+    },
+    {
+      id: 4,
+      name: "Paradižnik (500 g)",
+      category: "Zelenjava",
+      price: 1.99,
+      image: "/img/products/tomatoes.jpg",
+    },
+    {
+      id: 5,
+      name: "Mleko 1,5% (1 l)",
+      category: "Mlečni izdelki",
+      price: 0.95,
+      image: "/img/products/milk.jpg",
+    },
+    {
+      id: 6,
+      name: "Sir Edamec (200 g)",
+      category: "Mlečni izdelki",
+      price: 2.49,
+      image: "/img/products/cheese.jpg",
+    },
+    {
+      id: 7,
+      name: "Bel kruh (500 g)",
+      category: "Pekovski izdelki",
+      price: 1.19,
+      image: "/img/products/bread.jpg",
+    },
+    {
+      id: 8,
+      name: "Piškoti čokoladni (200 g)",
+      category: "Prigrizki",
+      price: 1.79,
+      image: "/img/products/cookies.jpg",
+    },
+    {
+      id: 9,
+      name: "Zamrznjeni grah (450 g)",
+      category: "Zamrznjeno",
+      price: 1.39,
+      image: "/img/products/frozen-peas.jpg",
+    },
+    {
+      id: 10,
+      name: "Konzerva tunine (185 g)",
+      category: "Živila v konzervi",
+      price: 1.59,
+      image: "/img/products/tuna.jpg",
+    },
+    {
+      id: 11,
+      name: "Mineralna voda (1,5 l)",
+      category: "Pijače",
+      price: 0.49,
+      image: "/img/products/water.jpg",
+    },
+    {
+      id: 12,
+      name: "Piščančje fileje (500 g)",
+      category: "Meso & Riba",
+      price: 4.99,
+      image: "/img/products/chicken.jpg",
+    },
+  ];
+  
+  export default productsData;
