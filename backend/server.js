@@ -30,7 +30,7 @@ async function connectToMongoDB() {
     db = client.db("BestPrice");
     tusCollection = db.collection("tus");
     merkatorCollection = db.collection("merkators");
-    jagerCollection = db.collection("jager");
+    jagerCollection = db.collection("jagers");
     lidlCollection = db.collection("lidl");
     hoferCollection = db.collection("hofer");
     console.log("Connected to MongoDB!");
