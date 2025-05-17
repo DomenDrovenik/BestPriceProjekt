@@ -1,14 +1,17 @@
 export const categories = [
-    "Sadje",
-    "Zelenjava",
-    "Mlečni izdelki",
-    "Pekovski izdelki",
-    "Meso & Riba",
-    "Pijače",
-    "Prigrizki",
-    "Zamrznjeno",
-    "Živila v konzervi",
-    "Osebna nega",
-  ];
-  
+  "Sadje in zelenjava",
+  "Mlečni izdelki",
+  "Meso in ribe",
+  "Pekovski izdelki",
+  "Zamrznjena hrana",
+  "Konzervirana živila",
+  "Olja in maščobe",
+  "Testenine, žita, juhe",
+  "Sladkor, sladkarije in prigrizki",
+  "Pijače",
+  "Bio izdelki",
+  "Pripravljene jedi",
+];
+
+
   export default categories;

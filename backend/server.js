@@ -1,7 +1,9 @@
 const express = require("express");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const cors = require("cors");
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 const PORT = 3000;
 
@@ -89,6 +91,23 @@ app.get("/lidl", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+app.get("/api/all-products", async (req, res) => {
+  try {
+    const tus = await tusCollection.find({}).toArray();
+    const merkator = await merkatorCollection.find({}).toArray();
+    const jager = await jagerCollection.find({}).toArray();
+    const lidl = await lidlCollection.find({}).toArray();
+    const hofer = await hoferCollection.find({}).toArray();
+
+    const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
+    res.status(200).json(all);
+  } catch (error) {
+    console.error("Napaka pri pridobivanju vseh izdelkov:", error);
+    res.status(500).json({ message: "Napaka na strežniku" });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
