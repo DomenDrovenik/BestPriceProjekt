@@ -1,5 +1,6 @@
 // src/views/Products.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from 'axios';
 import {
   Card,
   CardBody,
@@ -19,6 +20,39 @@ export function Products() {
   const [selectedCats, setSelectedCats] = useState([]);
   const [priceRange, setPriceRange] = useState([0, 100]);
 
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [timeoutId, setTimeoutId] = useState(null);
+
+//   useEffect(() => {
+//     if (!query.trim()) {
+//       setResults([]);
+//       return;
+//     }
+
+//     // Debounce: počakaj 300ms po zadnjem znaku
+//     const id = setTimeout(() => {
+//       axios
+//         .get(`http://localhost:3000/search?q=${query}`)
+//         .then((res) => setResults(res.data))
+//         .catch((err) => console.error('Search error:', err));
+//     }, 300);
+
+//     // Clear old timeout, da ne pošiljamo preveč requestov
+//     setTimeoutId((prevId) => {
+//       if (prevId) clearTimeout(prevId);
+//       return id;
+//     });
+
+    
+//     // Cleanup ob spremembi query
+//     return () => clearTimeout(id);
+//   }, [query]);
+
+//   useEffect(() => {
+//   console.log("Results updated:", results);
+// }, [results]);
+
   // filtriranje izdelkov
   const filtered = productsData
     .filter((p) =>
@@ -36,6 +70,17 @@ export function Products() {
         ? prev.filter((c) => c !== cat)
         : [...prev, cat]
     );
+  };
+
+  const handleSearch = async () => {
+    if (!query.trim()) return;
+
+    try {
+      const response = await axios.get(`http://localhost:3000/search?q=${query}`);
+      setResults(response.data);
+    } catch (error) {
+      console.error('Search error:', error);
+    }
   };
 
   return (
@@ -87,8 +132,8 @@ export function Products() {
                 <Input
                   variant="outlined"
                   size="md"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
                   placeholder="Vnesi ime..."
                 />
               </div>
