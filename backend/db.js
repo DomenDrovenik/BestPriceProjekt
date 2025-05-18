@@ -1,5 +1,5 @@
 // db.js
-const { MongoClient } = require('mongodb');
+const { MongoClient,ServerApiVersion } = require('mongodb');
 
 const MONGO_URI = process.env.MONGO_URI 
   || 'mongodb+srv://anja:anja@cluster0.bwlvpsm.mongodb.net/BestPrice?retryWrites=true&w=majority';
@@ -11,15 +11,31 @@ let db;
  * Vrne pripravljeno instanco `db.collection(name)`.
  * Če še nismo povezani, najprej naredi connect().
  */
+// async function getCollection(name) {
+//   if (!client) {
+//     client = new MongoClient(MONGO_URI, {
+//       useNewUrlParser: true,
+//       useUnifiedTopology: true
+//     });
+//     await client.connect();
+//     // DB ime iz URI ali privzeto iz .db('BestPrice')
+//     db = client.db(); 
+//   }
+//   return db.collection(name);
+// }
+
 async function getCollection(name) {
   if (!client) {
     client = new MongoClient(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      },
+      autoSelectFamily: false
     });
     await client.connect();
-    // DB ime iz URI ali privzeto iz .db('BestPrice')
-    db = client.db(); 
+    db = client.db(); // ali db = client.db("BestPrice") za večjo varnost
   }
   return db.collection(name);
 }
