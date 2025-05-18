@@ -11,6 +11,10 @@ export const categories = [
   "Pijače",
   "Bio izdelki",
   "Pripravljene jedi",
+  "Vse za zajtrk",
+  "Vse za peko",
+  "Tuja prehrana",
+  "Drugo"
 ];
 
 
