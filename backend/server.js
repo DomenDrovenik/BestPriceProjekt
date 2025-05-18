@@ -1,8 +1,16 @@
 const express = require("express");
+const cors = require("cors");
+
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
 const app = express();
 app.use(express.json());
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+  })
+);
 const PORT = 3000;
 
 const uri =
@@ -11,7 +19,7 @@ const uri =
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
-    strict: true,
+    strict: false,
     deprecationErrors: true,
   },
   autoSelectFamily: false,
@@ -86,6 +94,43 @@ app.get("/lidl", async (req, res) => {
     res.status(200).json(lidlData);
   } catch (error) {
     console.error("Error retrieving data:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/search", async (req, res) => {
+  const query = req.query.q; // npr. /search?q=banana
+  if (!query) {
+    return res.status(400).json({ message: "Missing search query (?q=...)" });
+  }
+
+  try {
+    const results = await tusCollection
+      .aggregate([
+        {
+          $search: {
+            text: {
+              query: query,
+              path: ["name", "category", "subcategory"],
+            },
+          },
+        },
+        { $limit: 10 },
+        {
+          $project: {
+            name: 1,
+            price: 1,
+            category: 1,
+            subcategory: 1,
+            score: { $meta: "searchScore" },
+          },
+        },
+      ])
+      .toArray();
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error performing search:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
