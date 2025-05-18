@@ -22,7 +22,7 @@ const scrapeMercator = async () => {
     console.log(`🛒 Začenjam zajem podatkov iz Mercator...`);
     
     // Inicializiramo Puppeteer
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ headless: true ,args: ['--no-sandbox', '--disable-setuid-sandbox']});
     const pages = await Promise.all(urls.map(() => browser.newPage()));
     let allProducts = [];
 
