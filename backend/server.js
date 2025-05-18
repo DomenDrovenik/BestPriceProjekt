@@ -99,42 +99,6 @@ app.get("/lidl", async (req, res) => {
   }
 });
 
-app.get("/search", async (req, res) => {
-  const query = req.query.q; // npr. /search?q=banana
-  if (!query) {
-    return res.status(400).json({ message: "Missing search query (?q=...)" });
-  }
-
-  try {
-    const results = await tusCollection
-      .aggregate([
-        {
-          $search: {
-            text: {
-              query: query,
-              path: ["name", "category", "subcategory"],
-            },
-          },
-        },
-        { $limit: 10 },
-        {
-          $project: {
-            name: 1,
-            price: 1,
-            category: 1,
-            subcategory: 1,
-            score: { $meta: "searchScore" },
-          },
-        },
-      ])
-      .toArray();
-
-    res.status(200).json(results);
-  } catch (error) {
-    console.error("Error performing search:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
 
 app.get("/api/all-products", async (req, res) => {
   try {

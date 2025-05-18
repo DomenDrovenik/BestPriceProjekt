@@ -21,8 +21,6 @@ export function Products() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 24;
 
-  const [query, setQuery] = useState("");
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -146,16 +144,7 @@ export function Products() {
     );
   };
 
-  // const handleSearch = async () => {
-  //   if (!query.trim()) return;
-
-  //   try {
-  //     const response = await axios.get(`http://localhost:3000/search?q=${query}`);
-  //     setResults(response.data);
-  //   } catch (error) {
-  //     console.error('Search error:', error);
-  //   }
-  // };
+  
 
   return (
     <>
@@ -192,8 +181,8 @@ export function Products() {
                 <Input
                   variant="outlined"
                   size="md"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                   placeholder="Vnesi ime..."
                 />
               </div>
