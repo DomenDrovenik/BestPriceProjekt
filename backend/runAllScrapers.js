@@ -22,11 +22,11 @@ function runScript(file) {
 
 async function runScrapers() {
 
-  await runScript("scraper_hofer.js");
-  await runScript("scraper_lidl.js");
   await runTusScraper();
   await scrapeJager();     
   await scrapeMercator();  
+  await runScript("scraper_hofer.js");
+  await runScript("scraper_lidl.js");
 
   console.log("✅ Vsi scraperji zaključeni ob", new Date().toISOString());
 }
