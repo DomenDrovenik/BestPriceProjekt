@@ -21,6 +21,8 @@ export function Products() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 24;
 
+  const [query, setQuery] = useState("");
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -144,16 +146,16 @@ export function Products() {
     );
   };
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
+  // const handleSearch = async () => {
+  //   if (!query.trim()) return;
 
-    try {
-      const response = await axios.get(`http://localhost:3000/search?q=${query}`);
-      setResults(response.data);
-    } catch (error) {
-      console.error('Search error:', error);
-    }
-  };
+  //   try {
+  //     const response = await axios.get(`http://localhost:3000/search?q=${query}`);
+  //     setResults(response.data);
+  //   } catch (error) {
+  //     console.error('Search error:', error);
+  //   }
+  // };
 
   return (
     <>

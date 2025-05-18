@@ -2,17 +2,16 @@ const express = require("express");
 const cors = require("cors");
 
 const { MongoClient, ServerApiVersion } = require("mongodb");
-const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-  })
-);
+// app.use(
+//   cors({
+//     origin: "http://localhost:5173",
+//   })
+// );
 const PORT = 3000;
 
 const uri =
@@ -100,7 +99,6 @@ app.get("/lidl", async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 app.get("/search", async (req, res) => {
   const query = req.query.q; // npr. /search?q=banana
   if (!query) {
@@ -138,7 +136,6 @@ app.get("/search", async (req, res) => {
   }
 });
 
-=======
 app.get("/api/all-products", async (req, res) => {
   try {
     const tus = await tusCollection.find({}).toArray();
@@ -156,7 +153,6 @@ app.get("/api/all-products", async (req, res) => {
 });
 
 
->>>>>>> dd8bba68d2da1c7c7d9dde0c13d04d9aa4e26d69
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   connectToMongoDB();
