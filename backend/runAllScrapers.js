@@ -1,26 +1,32 @@
+const { exec } = require("child_process");
 const path = require("path");
 
+const scrapeJager = require("./scraper_jager");
+const scrapeMercator = require("./scraper_mercator");
+const runTusScraper =require("./scraperTus")
+
+
+function runScript(file) {
+  return new Promise((resolve, reject) => {
+    exec(`node ${file}`, { cwd: __dirname }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`❌ Error in ${file}:\n`, stderr);
+        reject(error);
+      } else {
+        console.log(`✅ ${file} completed:\n`, stdout);
+        resolve();
+      }
+    });
+  });
+}
+
 async function runScrapers() {
-  console.log("🔄 Začenjam z izvajanjem scraperjev...");
 
-  // Uvozi vsakega scraperja
-  const scraperFiles = [
-    "scraper_hofer.js",
-    "scraper_jager.js",
-    "scraper_lidl.js",
-    "scraper_mercator.js",
-    "scraperTus.js",
-  ];
-
-  for (const file of scraperFiles) {
-    const scraperPath = path.join(__dirname, file);
-    console.log(`▶️  Zagon: ${file}`);
-    try {
-      await require(scraperPath);
-    } catch (err) {
-      console.error(`❌ Napaka pri ${file}:`, err);
-    }
-  }
+  await runScript("scraper_hofer.js");
+  await runScript("scraper_lidl.js");
+  await runTusScraper();
+  await scrapeJager();     
+  await scrapeMercator();  
 
   console.log("✅ Vsi scraperji zaključeni ob", new Date().toISOString());
 }
