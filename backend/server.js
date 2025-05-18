@@ -2,8 +2,10 @@ const express = require("express");
 const cors = require("cors");
 
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const cors = require("cors");
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 app.use(
@@ -98,6 +100,7 @@ app.get("/lidl", async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 app.get("/search", async (req, res) => {
   const query = req.query.q; // npr. /search?q=banana
   if (!query) {
@@ -135,6 +138,25 @@ app.get("/search", async (req, res) => {
   }
 });
 
+=======
+app.get("/api/all-products", async (req, res) => {
+  try {
+    const tus = await tusCollection.find({}).toArray();
+    const merkator = await merkatorCollection.find({}).toArray();
+    const jager = await jagerCollection.find({}).toArray();
+    const lidl = await lidlCollection.find({}).toArray();
+    const hofer = await hoferCollection.find({}).toArray();
+
+    const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
+    res.status(200).json(all);
+  } catch (error) {
+    console.error("Napaka pri pridobivanju vseh izdelkov:", error);
+    res.status(500).json({ message: "Napaka na strežniku" });
+  }
+});
+
+
+>>>>>>> dd8bba68d2da1c7c7d9dde0c13d04d9aa4e26d69
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   connectToMongoDB();
