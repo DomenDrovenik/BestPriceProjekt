@@ -153,17 +153,15 @@ export function Products() {
           <div className="flex flex-wrap items-center">
             <div className="ml-auto mr-auto w-full px-4 text-center lg:w-8/12">
               <Typography variant="h1" color="white" className="mb-6 font-black">
-                Your story starts with us.
-              </Typography>
-              <Typography variant="lead" color="white" className="opacity-80">
-                Explore the best grocery deals from top Slovenian retailers.
+                Raziskuj cene v trgovinah
               </Typography>
             </div>
           </div>
         </div>
       </div>
 
-      <PageTitle section="Izdelki" heading="Seznam izdelkov" />
+      <PageTitle heading="Seznam izdelkov" />
+      <br />
 
       <div className="container mx-auto flex flex-col-reverse gap-6 px-4 md:flex-row">
         <aside className="w-full shrink-0 md:w-1/4">
@@ -292,6 +290,18 @@ export function Products() {
                       >
                         Več
                       </Button>
+                      <br />
+                      <br />
+                      <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
+                        Posodobljeno:{' '}
+                        {p.updatedAt
+                          ? new Date(p.updatedAt).toLocaleDateString('sl-SI', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                          })
+                        : 'ni podatka'}
+                      </Typography>
                     </CardBody>
                   </Card>
                 ))}
