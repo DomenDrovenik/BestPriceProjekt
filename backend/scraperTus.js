@@ -121,10 +121,11 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
 //   return results;
 // }
 
-
-
 async function ScrapeTus() {
-  const browser = await puppeteer.launch({ headless: true,args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  const browser = await puppeteer.launch({
+    headless: false,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
   const page = await browser.newPage();
   const results = [];
 
@@ -155,9 +156,9 @@ async function ScrapeTus() {
 
   for (const { url, category } of categories) {
     await page.goto(url, { waitUntil: "networkidle2" });
-    await page.waitForSelector(".sub-cat");  
+    await page.waitForSelector(".sub-cat");
 
-    const subcatCount = await page.$$eval(".sub-cat", (els) => els.length);  
+    const subcatCount = await page.$$eval(".sub-cat", (els) => els.length);
 
     for (let i = 0; i < subcatCount; i++) {
       const subcategory = await page.$eval(
@@ -165,51 +166,66 @@ async function ScrapeTus() {
         (el) => el.innerText.trim()
       );
 
-      
       await Promise.all([
         page.evaluate((index) => {
           const el = document.querySelectorAll(".sub-cat")[index];
-          el.click();  
+          el.click();
         }, i),
-        page.waitForSelector(".defaultGrid", { timeout: 3000 }).catch(() => null),
+        page
+          .waitForSelector(".defaultGrid", { timeout: 3000 })
+          .catch(() => null),
       ]);
 
       let hasProducts = true;
       let pageIndex = 0;
 
-      
       while (hasProducts) {
-       
         const urlObj = new URL(page.url());
         urlObj.searchParams.set("s", pageIndex.toString());
         const currentPageUrl = urlObj.toString();
 
         console.log(`Zajemam podatke s strani: ${currentPageUrl}`);
-        
+
         await page.goto(currentPageUrl, { waitUntil: "networkidle2" });
 
-        
         const items = await page.$$eval("a.product-list-item", (elements) =>
           elements.map((el) => {
-            const rawPrice =
-              el.querySelector("div.priceWithVat")?.innerText.trim() || "";
-            const match = rawPrice.match(/[\d,.]+/);
-            const price = match ? match[0].replace(",", ".") : "";
+            const priceElements = el.querySelectorAll("div.priceWithVat");
+            let regularPrice = "";
+            let actionPrice = null;
+
+            if (priceElements.length > 1) {
+              regularPrice =
+                priceElements[0]?.innerText
+                  .trim()
+                  .match(/[\d,.]+/)?.[0]
+                  ?.replace(",", ".") || "";
+              actionPrice =
+                priceElements[1]?.innerText
+                  .trim()
+                  .match(/[\d,.]+/)?.[0]
+                  ?.replace(",", ".") || null;
+            } else if (priceElements.length === 1) {
+              regularPrice =
+                priceElements[0]?.innerText
+                  .trim()
+                  .match(/[\d,.]+/)?.[0]
+                  ?.replace(",", ".") || "";
+            }
 
             return {
               name: el.querySelector("h3")?.innerText.trim() || "",
-              price: price,
+              price: regularPrice,
+              actionPrice,
               image: el.querySelector("img")?.getAttribute("src"),
             };
           })
         );
 
-        
         if (items.length === 0) {
           console.log(`Ni več izdelkov na strani ${currentPageUrl}`);
           hasProducts = false;
         } else {
-          
           for (const item of items) {
             results.push({
               category,
@@ -218,14 +234,14 @@ async function ScrapeTus() {
             });
           }
 
-          console.log(`Najdenih izdelkov na strani ${currentPageUrl}: ${items.length}`);
-          
-          
+          console.log(
+            `Najdenih izdelkov na strani ${currentPageUrl}: ${items.length}`
+          );
+
           pageIndex += 25;
         }
       }
 
-      
       await page.goto(url, { waitUntil: "networkidle2" });
       await page.waitForSelector(".sub-cat");
     }
@@ -234,9 +250,6 @@ async function ScrapeTus() {
   await browser.close();
   return results;
 }
-
-
-
 
 //--------------------------------------------------------------------
 
@@ -272,58 +285,92 @@ async function runTusScraper() {
           ...item,
           updatedAt: now,
         });
-      } else {
-        const updates = {};
-        let changed = false;
+        continue;
+      }
 
-        
-        if (existing.price !== item.price) {
+      const updates = {};
+      let changed = false;
+
+      if (existing.price !== item.price) {
+        const previousPrices = existing.previousPrices || [];
+        if (!previousPrices.includes(existing.price)) {
+          previousPrices.push(existing.price);
+        }
+
+        // console.log(`Sprememba cene za izdelek: "${item.name}"`);
+        // console.log(
+        //   `   Stara cena: ${existing.price}, Nova cena: ${item.price}`
+        // );
+
+        updates.price = item.price;
+        updates.previousPrices = previousPrices;
+        updates.updatedAt = now;
+        changed = true;
+      }
+
+      const existingActionPrice = existing.actionPrice ?? null;
+      const newActionPrice = item.actionPrice ?? null;
+
+      if (existingActionPrice !== newActionPrice) {
+        if (newActionPrice) {
+          updates.actionPrice = newActionPrice;
+          // console.log(
+          //   `Akcijska cena posodobljena za "${item.name}": ${newActionPrice}`
+          // );
+        } else if (existingActionPrice && !newActionPrice) {
+          updates.$unset = { ...(updates.$unset || {}), actionPrice: "" };
+
           const previousPrices = existing.previousPrices || [];
-          if (!previousPrices.includes(existing.price)) {
-            previousPrices.push(existing.price);
+          if (!previousPrices.includes(existingActionPrice)) {
+            updates.previousPrices = [...previousPrices, existingActionPrice];
           }
 
-          console.log(`Sprememba cene za izdelek: "${item.name}"`);
-          console.log(`Stara cena: ${existing.price}, Nova cena: ${item.price}`);
-
-          updates.price = item.price;
-          updates.previousPrices = previousPrices;
-          updates.updatedAt = now;
-          changed = true;
+          // console.log(
+          //   `Akcija odstranjena za "${item.name}", stara akcijska cena: ${existingActionPrice}`
+          // );
         }
 
-        
-        if (!existing.updatedAt) {
-          updates.updatedAt = now;
-          changed = true;
+        updates.updatedAt = now;
+        changed = true;
+      }
+
+      if (!existing.updatedAt) {
+        updates.updatedAt = now;
+        changed = true;
+      }
+
+      if (existing.category !== item.category) {
+        updates.category = item.category;
+        changed = true;
+      }
+
+      if (existing.subcategory !== item.subcategory) {
+        updates.subcategory = item.subcategory;
+        changed = true;
+      }
+
+      if (changed) {
+        const updateOps = {};
+
+        if (updates.$unset) {
+          updateOps.$unset = updates.$unset;
         }
 
-        
-        if (existing.category !== item.category) {
-          updates.category = item.category;
-          changed = true;
-        }
-        if (existing.subcategory !== item.subcategory) {
-          updates.subcategory = item.subcategory;
-          changed = true;
-        }
+        updateOps.$set = { ...updates };
+        delete updateOps.$set.$unset;
 
-        if (changed) {
-          await collection.updateOne(
-            { _id: existing._id },
-            { $set: updates }
-          );
-        }
+        await collection.updateOne({ _id: existing._id }, updateOps);
       }
     }
 
-    console.log("Saving completed.");
+    console.log(" Shranjevanje končano.");
   } catch (err) {
-    console.error("Error working with MongoDB:", err);
+    console.error(" Napaka pri delu z MongoDB:", err);
   } finally {
     await client.close();
   }
 }
 
+runTusScraper();
 
-module.exports = runTusScraper;
+// module.exports = runTusScraper;

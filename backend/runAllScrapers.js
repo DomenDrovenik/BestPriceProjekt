@@ -3,8 +3,7 @@ const path = require("path");
 
 const scrapeJager = require("./scraper_jager");
 const scrapeMercator = require("./scraper_mercator");
-const runTusScraper =require("./scraperTus")
-
+const runTusScraper = require("./scraperTus");
 
 function runScript(file) {
   return new Promise((resolve, reject) => {
@@ -21,11 +20,10 @@ function runScript(file) {
 }
 
 async function runScrapers() {
-
   await runScript("scraper_hofer.js");
-  await runScript("scraper_lidl.js");
-  await scrapeJager();     
-  await scrapeMercator();  
+  // await runScript("scraper_lidl.js");
+  await scrapeJager();
+  await scrapeMercator();
   await runTusScraper();
 
   console.log("✅ Vsi scraperji zaključeni ob", new Date().toISOString());
