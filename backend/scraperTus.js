@@ -147,7 +147,7 @@ async function ScrapeTus() {
       url: "https://www.tuscc.si/katalog/brezalkoholne-pijace",
       category: "Brezalkoholne Pijače",
     },
-    { url: "https://www.tuscc.si/katalog/nezivila", category: "Neživila" },
+    // { url: "https://www.tuscc.si/katalog/nezivila", category: "Neživila" },
     {
       url: "https://www.tuscc.si/katalog/alkoholne-pijace",
       category: "Alkoholne Pijače",
@@ -371,6 +371,6 @@ async function runTusScraper() {
   }
 }
 
-runTusScraper();
+// runTusScraper();
 
-// module.exports = runTusScraper;
+module.exports = runTusScraper;

@@ -99,7 +99,6 @@ app.get("/lidl", async (req, res) => {
   }
 });
 
-
 app.get("/api/all-products", async (req, res) => {
   try {
     const tus = await tusCollection.find({}).toArray();
@@ -116,6 +115,60 @@ app.get("/api/all-products", async (req, res) => {
   }
 });
 
+app.get("/api/discountedProducts", async (req, res) => {
+  try {
+    // const tus = await tusCollection
+    //   .find({ actionPrice: { $exists: true, $ne: null } })
+    //   .toArray();
+
+    const tus = await tusCollection
+      .aggregate([
+        { $match: { actionPrice: { $exists: true, $ne: null } } },
+        {
+          $addFields: {
+            discountPercentage: {
+              $multiply: [
+                {
+                  $divide: [
+                    {
+                      $subtract: [
+                        { $toDouble: "$price" },
+                        { $toDouble: "$actionPrice" },
+                      ],
+                    },
+                    { $toDouble: "$price" },
+                  ],
+                },
+                100,
+              ],
+            },
+          },
+        },
+        { $sort: { discountPercentage: -1 } },
+        { $limit: 5 },
+      ])
+      .toArray();
+
+    const withTrend = tus.map((item) => {
+      const previous = Array.isArray(item.previousPrices)
+        ? item.previousPrices
+        : [];
+      return {
+        ...item,
+        trend: [
+          ...previous.map((p) => ({ pv: parseFloat(p) })),
+          { pv: parseFloat(item.price) },
+          { pv: parseFloat(item.actionPrice) },
+        ],
+      };
+    });
+
+    res.status(200).json(withTrend);
+  } catch (error) {
+    console.error("Napaka pri pridobivanju izdelkov:", error);
+    res.status(500).json({ message: "Napaka na strežniku" });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
