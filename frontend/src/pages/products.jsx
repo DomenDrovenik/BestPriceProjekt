@@ -228,8 +228,8 @@ export function Products() {
               <div>
                 <Typography variant="small" className="block mb-2 font-medium">Kategorije</Typography>
                 <div className="flex flex-col gap-1.5">
-                  {categories.map((cat) => (
-                    <Checkbox key={cat} label={cat} checked={selectedCats.includes(cat)} onChange={() => toggleCat(cat)} />
+                  {categories.map(({ name }) => (
+                    <Checkbox key={name} label={name} checked={selectedCats.includes(name)} onChange={() => toggleCat(name)} />
                   ))}
                 </div>
               </div>

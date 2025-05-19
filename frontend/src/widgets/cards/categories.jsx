@@ -6,17 +6,17 @@ import {
   IconButton,
 } from "@material-tailwind/react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
-import { categories_data } from "@/data/categories-data";
+import { categories } from "@/data/categories";
 import { Link as RouterLink } from "react-router-dom";
 
 export function Categories() {
     const [start, setStart] = useState(0);
     const pageSize = 4;
-    const end = Math.min(start + pageSize, categories_data.length);
+    const end = Math.min(start + pageSize, categories.length);
   
     const prev = () => setStart((s) => Math.max(0, s - pageSize));
     const next = () =>
-      setStart((s) => Math.min(categories_data.length - pageSize, s + pageSize));
+      setStart((s) => Math.min(categories.length - pageSize, s + pageSize));
   
     return (
       <section className="relative py-12 bg-white">
@@ -44,7 +44,7 @@ export function Categories() {
               variant="text"
               color="blue-gray"
               onClick={next}
-              disabled={end === categories_data.length}
+              disabled={end === categories.length}
             >
               <ChevronRightIcon className="h-6 w-6" />
             </IconButton>
@@ -52,7 +52,7 @@ export function Categories() {
   
           {/* Cards row */}
           <div className="flex overflow-hidden">
-            {categories_data.slice(start, end).map(({ name, img }) => (
+            {categories.slice(start, end).map(({ name, img }) => (
               <Card
                 key={name}
                 className="min-w-1/4 flex-1 mx-2 overflow-hidden hover:shadow-lg transition-shadow"
