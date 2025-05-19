@@ -10,6 +10,7 @@ import {
 } from "@material-tailwind/react";
 import { PageTitle } from "@/widgets/layout";
 import { Link as RouterLink } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { categories } from "@/data/categories";
 
 export function Products() {
@@ -27,6 +28,16 @@ export function Products() {
     jager: "Jager",
     tus: "Tuš"
   };
+
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const initialCat = searchParams.get("category");
+    if (initialCat) {
+      setSelectedCats([decodeURIComponent(initialCat)]);
+    }
+  }, [searchParams]);
+
 
   // Ob zagonu - naloži vse izdelke
   useEffect(() => {
