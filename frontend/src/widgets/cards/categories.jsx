@@ -1,3 +1,4 @@
+// src/widgets/layout/Categories.jsx
 import React, { useState } from "react";
 import {
   Card,
@@ -6,59 +7,59 @@ import {
   IconButton,
 } from "@material-tailwind/react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
-import { categories_data } from "@/data/categories-data";
 import { Link as RouterLink } from "react-router-dom";
+import categories from "@/data/categories";
 
 export function Categories() {
-    const [start, setStart] = useState(0);
-    const pageSize = 4;
-    const end = Math.min(start + pageSize, categories_data.length);
-  
-    const prev = () => setStart((s) => Math.max(0, s - pageSize));
-    const next = () =>
-      setStart((s) => Math.min(categories_data.length - pageSize, s + pageSize));
-  
-    return (
-      <section className="relative py-12 bg-white">
-        <div className="container mx-auto px-4">
-          <Typography
-            variant="h3"
-            className="mb-6 font-semibold text-center"
+  const [start, setStart] = useState(0);
+  const pageSize = 4;
+  const end = Math.min(start + pageSize, categories.length);
+
+  const prev = () => setStart((s) => Math.max(0, s - pageSize));
+  const next = () =>
+    setStart((s) => Math.min(categories.length - pageSize, s + pageSize));
+
+  return (
+    <section className="relative py-12 bg-white">
+      <div className="container mx-auto px-4">
+        <Typography
+          variant="h3"
+          className="mb-6 font-semibold text-center"
+        >
+          Prebrskaj po kategorijah
+        </Typography>
+
+        {/* Arrows */}
+        <div className="absolute top-1/2 left-0 transform -translate-y-1/2 z-10">
+          <IconButton
+            variant="text"
+            color="blue-gray"
+            onClick={prev}
+            disabled={start === 0}
           >
-            Prebrskaj po kategorijah
-          </Typography>
-  
-          {/* Arrows */}
-          <div className="absolute top-1/2 left-0 transform -translate-y-1/2 z-10">
-            <IconButton
-              variant="text"
-              color="blue-gray"
-              onClick={prev}
-              disabled={start === 0}
+            <ChevronLeftIcon className="h-6 w-6" />
+          </IconButton>
+        </div>
+        <div className="absolute top-1/2 right-0 transform -translate-y-1/2 z-10">
+          <IconButton
+            variant="text"
+            color="blue-gray"
+            onClick={next}
+            disabled={end === categories.length}
+          >
+            <ChevronRightIcon className="h-6 w-6" />
+          </IconButton>
+        </div>
+
+        {/* Cards row */}
+        <div className="flex overflow-hidden">
+          {categories.slice(start, end).map(({ name, img }) => (
+            <RouterLink
+              key={name}
+              to={`/products?category=${encodeURIComponent(name)}`}
+              className="min-w-1/4 flex-1 mx-2 overflow-hidden"
             >
-              <ChevronLeftIcon className="h-6 w-6" />
-            </IconButton>
-          </div>
-          <div className="absolute top-1/2 right-0 transform -translate-y-1/2 z-10">
-            <IconButton
-              variant="text"
-              color="blue-gray"
-              onClick={next}
-              disabled={end === categories_data.length}
-            >
-              <ChevronRightIcon className="h-6 w-6" />
-            </IconButton>
-          </div>
-  
-          {/* Cards row */}
-          <div className="flex overflow-hidden">
-            {categories_data.slice(start, end).map(({ name, img }) => (
-              <Card
-                key={name}
-                className="min-w-1/4 flex-1 mx-2 overflow-hidden hover:shadow-lg transition-shadow"
-                as={RouterLink}
-                to={`/products?category=${encodeURIComponent(name)}`}
-              >
+              <Card className="hover:shadow-lg transition-shadow">
                 <img
                   src={img}
                   alt={name}
@@ -71,11 +72,12 @@ export function Categories() {
                   </Typography>
                 </CardBody>
               </Card>
-            ))}
-          </div>
+            </RouterLink>
+          ))}
         </div>
-      </section>
-    );
-  }
+      </div>
+    </section>
+  );
+}
 
 export default Categories;
