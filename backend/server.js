@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
 app.use(cors());
@@ -113,6 +113,47 @@ app.get("/api/all-products", async (req, res) => {
   } catch (error) {
     console.error("Napaka pri pridobivanju vseh izdelkov:", error);
     res.status(500).json({ message: "Napaka na strežniku" });
+  }
+});
+
+app.get("/api/products/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    // validate it’s a proper ObjectId
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid product id" });
+    }
+    const oid = new ObjectId(id);
+
+    // search each collection in turn
+    const collections = [
+      tusCollection,
+      merkatorCollection,
+      jagerCollection,
+      lidlCollection,
+      hoferCollection,
+    ];
+
+    let product = null;
+    for (const col of collections) {
+      const doc = await col.findOne({ _id: oid });
+      if (doc) {
+        product = doc;
+        break;
+      }
+    }
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // stringify the ObjectId for the client
+    product._id = product._id.toString();
+
+    res.status(200).json(product);
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

@@ -1,5 +1,4 @@
-import { Home, Products, Profile, SignIn, SignUp, ShoppingList } from "@/pages";
-
+import { Home, Products, ProductDetails, Profile, SignIn, SignUp, ShoppingList } from "@/pages";
 
 export const routes = [
   {
@@ -10,6 +9,11 @@ export const routes = [
     name: "Izdelki",
     path: "/products",
     element: <Products />,
+  },
+  {
+    // Route for individual product details
+    path: "/products/:id",
+    element: <ProductDetails />,
   },
   {
     name: "Nakupovalni seznam",

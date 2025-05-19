@@ -31,7 +31,6 @@ export function HowItWorks() {
       description:
         "Prihrani pri nakupu ali prejmi obvestilo, ko cena pade pod nastavljeno mejo.",
       icon: BellAlertIcon,
-      animation: "animate-pulse",
     },
   ];
 

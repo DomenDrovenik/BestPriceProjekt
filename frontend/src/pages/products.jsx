@@ -44,7 +44,13 @@ export function Products() {
     const fetchData = async () => {
       try {
         const res = await fetch("http://localhost:3000/api/all-products");
-        const data = await res.json();
+        const raw = await res.json();
+        const data = raw.map((p) => ({
+          ...p,
+          _id: typeof p._id === "object" 
+            ? p._id.$oid || p._id.toString()    // EJSON or native ObjectId
+            : String(p._id),
+        }));
         // heuristika: iz slike ugotovi trgovino
         const enriched = data.map((p) => {
           const source = p.image?.toLowerCase() || "";
@@ -294,7 +300,11 @@ export function Products() {
                       <Typography variant="h6" className="mb-2 font-semibold">
                         {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
                       </Typography>
-                      <Button component={RouterLink} to={`/products/${p._id}`} size="sm">Več</Button>
+                      <RouterLink to={`/products/${p._id}`}>
+                        <Button size="sm">
+                          Več
+                        </Button>
+                      </RouterLink>
                       <br /><br />
                       <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
                         Posodobljeno: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
