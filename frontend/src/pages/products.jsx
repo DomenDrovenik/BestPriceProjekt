@@ -297,8 +297,21 @@ export function Products() {
                       <Typography variant="paragraph" className="mb-2 text-blue-gray-600">
                         {categorize(p)} – {p.store || "Neznana trgovina"}
                       </Typography>
-                      <Typography variant="h6" className="mb-2 font-semibold">
-                        {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                      <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
+                        {p.actionPrice != null ? (
+                          <>
+                            <span className="line-through text-gray-500">
+                              {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                            </span>
+                            <span className="text-red-600 font-bold">
+                              {(parseFloat(p.actionPrice?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                          </>
+                        )}
                       </Typography>
                       <RouterLink to={`/products/${p._id}`}>
                         <Button size="sm">

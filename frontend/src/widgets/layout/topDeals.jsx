@@ -1,5 +1,6 @@
 // src/views/TopDeals.js
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
   Card,
   CardBody,
@@ -19,9 +20,38 @@ import {
 } from "recharts";
 import { dealsData } from "@/data/dealsData"; // v naslednjem koraku definiraj to
 
+
+async function fetchTopDiscountedProducts() {
+  try {
+    const response = await axios.get('http://localhost:3000/api/discountedProducts');
+    const products = response.data;
+
+    console.log("Top 5 izdelkov z največjim popustom:", products);
+    return products;
+  } catch (error) {
+    console.error("Napaka pri pridobivanju izdelkov z popustom:", error);
+    return [];
+  }
+}
+
+
+
 export function TopDeals() {
+
+  const [discountedProducts, setDiscountedProducts] = useState([]);
   // predpostavimo, da dealsData izgleda takole:
   // [{ id, name, image, oldPrice, newPrice, trend: [{pv: ...}, ...] }, ...]
+  useEffect(()=>{
+
+    async function loadData() {
+    const data = await fetchTopDiscountedProducts();
+    setDiscountedProducts(data);
+  }
+  loadData();
+
+},[])
+
+
   const top5 = dealsData
     .sort((a, b) => (b.oldPrice - b.newPrice) / b.oldPrice - (a.oldPrice - a.newPrice) / a.oldPrice)
     .slice(0, 5);
@@ -33,16 +63,16 @@ export function TopDeals() {
           Top 5 izdelkov ta teden z največjimi znižanji
         </Typography>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          {top5.map((item) => {
+          {discountedProducts.map((item) => {
             const percent = Math.round(
-              ((item.oldPrice - item.newPrice) / item.oldPrice) * 100
+              ((item.price - item.actionPrice) / item.price) * 100
             );
             const TrendIcon =
               percent > 0 ? ArrowTrendingDownIcon : ArrowTrendingUpIcon;
             const trendColor = percent > 0 ? "text-green-500" : "text-red-500";
 
             return (
-              <Card key={item.id} className="hover:shadow-lg transition-shadow">
+              <Card key={item._id} className="hover:shadow-lg transition-shadow">
                 <CardBody className="p-4 flex flex-col items-center">
                   <img
                     src={item.image}
@@ -57,10 +87,10 @@ export function TopDeals() {
                       variant="small"
                       className="line-through text-gray-400"
                     >
-                      {item.oldPrice.toFixed(2)} €
+                      {item.price} €
                     </Typography>
                     <Typography variant="h6" className="font-semibold">
-                      {item.newPrice.toFixed(2)} €
+                      {item.actionPrice} €
                     </Typography>
                   </div>
                   <div className="flex items-center gap-1 mb-3">

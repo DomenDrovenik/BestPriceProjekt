@@ -110,9 +110,22 @@ export function ProductDetails() {
           <Typography variant="h4" className="font-bold mb-1">
             {product.name}
           </Typography>
-          <Typography variant="h5" color="blue-gray" className="mb-4">
-            {(parseFloat(product.price) || 0).toFixed(2)} €
-          </Typography>
+          <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
+                                  {product.actionPrice != null ? (
+                                    <>
+                                      <span className="line-through text-gray-500">
+                                        {(parseFloat(product.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                                      </span>
+                                      <span className="text-red-600 font-bold">
+                                        {(parseFloat(product.actionPrice?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      {(parseFloat(product.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                                    </>
+                                  )}
+                                </Typography>
           <Typography variant="small" color="gray" className="mb-4">
             Kategorija: <strong>{product.category}</strong>
           </Typography>
