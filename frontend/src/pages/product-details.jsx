@@ -13,39 +13,51 @@ import {
   StarIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/solid";
+import {
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    Tooltip,
+  } from "recharts";
 import { PageTitle } from "@/widgets/layout";
 
 export function ProductDetails() {
-  const { id } = useParams();
-  const [product, setProduct] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        // 1) osnovni izdelek  
-        const resP = await fetch(`http://localhost:3000/api/products/${id}`);
-        const dataP = await resP.json();
-        setProduct(dataP);
-
-        // 2) zgodovina cen (array of { date, price })
-        const resH = await fetch(`http://localhost:3000/api/products/${id}/history`);
-        setHistory(await resH.json());
-
-        // 3) komentarji (array of { id, user, rating, text, date })
-        const resC = await fetch(`http://localhost:3000/api/products/${id}/comments`);
-        setComments(await resC.json());
-      } catch (err) {
-        console.error("Napaka pri nalaganju podrobnosti:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [id]);
+    const { id } = useParams();
+    const [product, setProduct] = useState(null);
+    const [history, setHistory] = useState([]);
+    const [comments, setComments] = useState([]);
+    const [loading, setLoading] = useState(true);
+  
+    useEffect(() => {
+      const load = async () => {
+        setLoading(true);
+        try {
+          // 1) Fetch product, which now includes previousPrices array
+          const resP = await fetch(`http://localhost:3000/api/products/${id}`);
+          const dataP = await resP.json();
+          setProduct(dataP);
+  
+          // 2) Use product.previousPrices directly
+          const prev = dataP.previousPrices || [];
+          const formatted = prev.map(({ date, price }) => ({
+            date: new Date(date).toLocaleDateString("sl-SI"),
+            price: parseFloat(price),
+          }));
+          setHistory(formatted);
+  
+          // 3) Comments remain fetched separately
+          const resC = await fetch(`http://localhost:3000/api/products/${id}/comments`);
+          setComments(await resC.json());
+        } catch (err) {
+          console.error("Napaka pri nalaganju podrobnosti:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      load();
+    }, [id]);
 
   if (loading) {
     return (
@@ -108,25 +120,50 @@ export function ProductDetails() {
       </Card>
 
       {/* Zgodovina cen */}
-      <div className="px-4 mb-12">
-      <Typography variant="h3" className="font-semibold mb-4">
-        Zgodovina cen
-      </Typography>
-      <div className="overflow-x-auto mb-8">
-        <table className="w-full text-left">
-          <thead>
-            <tr>
-              <th className="p-2 border-b">Datum</th>
-              <th className="p-2 border-b">Cena (€)</th>
-            </tr>
-          </thead>
-          <tbody>
-                <td className="p-2 border-b">{new Date(product.updatedAt).toLocaleDateString("sl-SI")}</td>
-                <td className="p-2 border-b">{parseFloat(product.price).toFixed(2)}</td>
-          </tbody>
-        </table>
+      <div className="px-4 mb-12 max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <Typography variant="h5" className="font-semibold mb-4">
+            Zgodovina cen
+          </Typography>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr>
+                  <th className="p-2 border-b">Datum</th>
+                  <th className="p-2 border-b">Cena (€)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map(({ date, price }, idx) => (
+                  <tr key={idx}>
+                    <td className="p-2 border-b">{date}</td>
+                    <td className="p-2 border-b">{price.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <Typography variant="h5" className="font-semibold mb-4 text-center">
+            Trend cen
+          </Typography>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={history}>
+              <XAxis dataKey="date" />
+              <YAxis domain={["auto", "auto"]} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="price"
+                stroke="#8884d8"
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
-      </div>
+
 
       {/* Komentarji */}
       <div className="px-4 mb-12">
