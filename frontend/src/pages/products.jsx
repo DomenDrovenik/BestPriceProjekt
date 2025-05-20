@@ -22,6 +22,7 @@ export function Products() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStores, setSelectedStores] = useState([]);
   const itemsPerPage = 24;
+  const [onlyDiscounted, setOnlyDiscounted] = useState(false);
 
   const storeMap = {
     merkator: "Mercator",
@@ -171,7 +172,8 @@ export function Products() {
     .filter((p) => {
       const cena = parseFloat(p.price?.toString().replace(",", "."));
       return cena >= priceRange[0] && cena <= priceRange[1];
-    });
+    })
+    .filter((p) => !onlyDiscounted || p.actionPrice != null);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -258,6 +260,14 @@ export function Products() {
                     <Checkbox key={key} label={label} checked={selectedStores.includes(key)} onChange={() => toggleStore(key)} />
                   ))}
                 </div>
+              </div>
+              <div>
+                <Typography variant="small" className="block mb-2 font-medium">Posebne ponudbe</Typography>
+                <Checkbox
+                  label="Samo akcijski izdelki"
+                  checked={onlyDiscounted}
+                  onChange={() => setOnlyDiscounted(!onlyDiscounted)}
+                />
               </div>
 
               <div>
