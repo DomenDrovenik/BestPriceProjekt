@@ -2,125 +2,6 @@
 const puppeteer = require("puppeteer");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
-// async function ScrapeTus() {
-//   const browser = await puppeteer.launch({ headless: false });
-//   const page = await browser.newPage();
-//   const results = [];
-
-//   const categories = [
-//     {
-//       url: "https://www.tuscc.si/katalog/trajna-zivila",
-//       category: "Trajna Živila",
-//     },
-//     {
-//       url: "https://www.tuscc.si/katalog/zamrznjena-zivila",
-//       category: "Zamrznjena Živila",
-//     },
-//     {
-//       url: "https://www.tuscc.si/katalog/sveza-%C5%BEivila",
-//       category: "Sveža Živila",
-//     },
-//     { url: "https://www.tuscc.si/katalog/bio-zivila", category: "Bio Živila" },
-//     {
-//       url: "https://www.tuscc.si/katalog/brezalkoholne-pijace",
-//       category: "Brezalkoholne Pijače",
-//     },
-//     { url: "https://www.tuscc.si/katalog/nezivila", category: "Neživila" },
-//     {
-//       url: "https://www.tuscc.si/katalog/alkoholne-pijace",
-//       category: "Alkoholne Pijače",
-//     },
-//   ];
-
-//   for (const { url, category } of categories) {
-//     await page.goto(url, { waitUntil: "networkidle2" });
-//     await page.waitForSelector(".sub-cat");
-
-//     const subcatCount = await page.$$eval(".sub-cat", (els) => els.length);
-
-//     for (let i = 0; i < subcatCount; i++) {
-//       const subcategory = await page.$eval(
-//         `.sub-cat:nth-child(${i + 1}) h3`,
-//         (el) => el.innerText.trim()
-//       );
-
-//       await Promise.all([
-//         page.evaluate((index) => {
-//           const el = document.querySelectorAll(".sub-cat")[index];
-//           el.click();
-//         }, i),
-//         page
-//           .waitForSelector(".defaultGrid", { timeout: 5000 })
-//           .catch(() => null),
-//       ]);
-
-//       const hasProducts = await page
-//         .$eval("body", () => !!document.querySelector("a.product-list-item"))
-//         .catch(() => false);
-
-//       if (!hasProducts) {
-//         console.log(`Prazna podkategorija: ${subcategory}`);
-//         await page.goto(url, { waitUntil: "networkidle2" });
-//         await page.waitForSelector(".sub-cat");
-//         continue;
-//       }
-
-//       let finished = false;
-//       while (!finished) {
-//         const items = await page.$$eval("a.product-list-item", (elements) =>
-//           elements.map((el) => {
-//             const rawPrice =
-//               el.querySelector("div.priceWithVat")?.innerText.trim() || "";
-//             const match = rawPrice.match(/[\d,.]+/);
-//             const price = match ? match[0].replace(",", ".") : "";
-
-//             return {
-//               name: el.querySelector("h3")?.innerText.trim() || "",
-//               price: price,
-//               image: el.querySelector("img")?.getAttribute("src"),
-//             };
-//           })
-//         );
-
-//         for (const item of items) {
-//           results.push({
-//             category,
-//             subcategory,
-//             ...item,
-//           });
-//         }
-
-//         const currentPage = await page
-//           .$eval(".number.selected", (el) => el.innerText.trim())
-//           .catch(() => null);
-
-//         const forwardArrow = await page.$(".arrow-forward");
-//         if (!forwardArrow) {
-//           finished = true;
-//           break;
-//         }
-
-//         await forwardArrow.click();
-//         await new Promise((resolve) => setTimeout(resolve, 1000));
-
-//         const newPage = await page
-//           .$eval(".number.selected", (el) => el.innerText.trim())
-//           .catch(() => null);
-
-//         if (!newPage || newPage === currentPage) {
-//           finished = true;
-//         }
-//       }
-
-//       await page.goto(url, { waitUntil: "networkidle2" });
-//       await page.waitForSelector(".sub-cat");
-//     }
-//   }
-
-//   await browser.close();
-//   return results;
-// }
-
 async function ScrapeTus() {
   const browser = await puppeteer.launch({
     headless: true,
@@ -172,7 +53,7 @@ async function ScrapeTus() {
           el.click();
         }, i),
         page
-          .waitForSelector(".defaultGrid", { timeout: 3000 })
+          .waitForSelector(".defaultGrid", { timeout: 10000 })
           .catch(() => null),
       ]);
 
@@ -280,73 +161,71 @@ async function runTusScraper() {
         image: item.image,
       });
 
+      const updates = {};
+      const previousPrices = existing?.previousPrices || [];
+      let changed = false;
+
+      const lastEntry = previousPrices.at(-1);
+
+      const hasAction =
+        item.actionPrice !== null && item.actionPrice !== undefined;
+      const prevHadAction =
+        existing?.actionPrice !== null && existing?.actionPrice !== undefined;
+
+      // Če obstaja akcijska cena → spremljaj to
+      if (hasAction) {
+        if (!lastEntry || lastEntry.price !== item.actionPrice) {
+          previousPrices.push({
+            price: item.actionPrice,
+            date: now,
+          });
+          console.log(
+            `🏷️ Nova akcijska cena za "${item.name}": ${item.actionPrice}`
+          );
+          changed = true;
+        }
+        updates.actionPrice = item.actionPrice;
+      } else {
+        // Akcija je izginila → najverjetneje gre cena nazaj na navadno
+        if (prevHadAction) {
+          updates.$unset = { actionPrice: "" };
+          console.log(`❌ Akcija odstranjena za "${item.name}"`);
+          changed = true;
+
+          if (!lastEntry || lastEntry.price !== item.price) {
+            previousPrices.push({
+              price: item.price,
+              date: now,
+            });
+            console.log(
+              `💰 Ponovno nastavljena redna cena za "${item.name}": ${item.price}`
+            );
+          }
+        } else {
+          // Brez akcije → spremljaj redno ceno normalno
+          if (!lastEntry || lastEntry.price !== item.price) {
+            previousPrices.push({
+              price: item.price,
+              date: now,
+            });
+            console.log(`💰 Nova redna cena za "${item.name}": ${item.price}`);
+            changed = true;
+          }
+        }
+      }
+
+      updates.updatedAt = now;
+      updates.price = item.price;
+      updates.previousPrices = previousPrices;
+
       if (!existing) {
         await collection.insertOne({
           ...item,
+          previousPrices,
           updatedAt: now,
         });
+        console.log(`🆕 Nov izdelek dodan: "${item.name}"`);
         continue;
-      }
-
-      const updates = {};
-      let changed = false;
-
-      if (existing.price !== item.price) {
-        const previousPrices = existing.previousPrices || [];
-        if (!previousPrices.includes(existing.price)) {
-          previousPrices.push(existing.price);
-        }
-
-        // console.log(`Sprememba cene za izdelek: "${item.name}"`);
-        // console.log(
-        //   `   Stara cena: ${existing.price}, Nova cena: ${item.price}`
-        // );
-
-        updates.price = item.price;
-        updates.previousPrices = previousPrices;
-        updates.updatedAt = now;
-        changed = true;
-      }
-
-      const existingActionPrice = existing.actionPrice ?? null;
-      const newActionPrice = item.actionPrice ?? null;
-
-      if (existingActionPrice !== newActionPrice) {
-        if (newActionPrice) {
-          updates.actionPrice = newActionPrice;
-          // console.log(
-          //   `Akcijska cena posodobljena za "${item.name}": ${newActionPrice}`
-          // );
-        } else if (existingActionPrice && !newActionPrice) {
-          updates.$unset = { ...(updates.$unset || {}), actionPrice: "" };
-
-          const previousPrices = existing.previousPrices || [];
-          if (!previousPrices.includes(existingActionPrice)) {
-            updates.previousPrices = [...previousPrices, existingActionPrice];
-          }
-
-          // console.log(
-          //   `Akcija odstranjena za "${item.name}", stara akcijska cena: ${existingActionPrice}`
-          // );
-        }
-
-        updates.updatedAt = now;
-        changed = true;
-      }
-
-      if (!existing.updatedAt) {
-        updates.updatedAt = now;
-        changed = true;
-      }
-
-      if (existing.category !== item.category) {
-        updates.category = item.category;
-        changed = true;
-      }
-
-      if (existing.subcategory !== item.subcategory) {
-        updates.subcategory = item.subcategory;
-        changed = true;
       }
 
       if (changed) {
@@ -363,9 +242,9 @@ async function runTusScraper() {
       }
     }
 
-    console.log(" Shranjevanje končano.");
+    console.log("✅ Scraper končan.");
   } catch (err) {
-    console.error(" Napaka pri delu z MongoDB:", err);
+    console.error("❌ Napaka:", err);
   } finally {
     await client.close();
   }
