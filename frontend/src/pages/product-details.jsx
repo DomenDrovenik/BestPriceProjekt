@@ -13,6 +13,14 @@ import {
   StarIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/solid";
+import {
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    Tooltip,
+  } from "recharts";
 import { PageTitle } from "@/widgets/layout";
 
 export function ProductDetails() {
@@ -108,24 +116,39 @@ export function ProductDetails() {
       </Card>
 
       {/* Zgodovina cen */}
-      <div className="px-4 mb-12">
-      <Typography variant="h3" className="font-semibold mb-4">
-        Zgodovina cen
-      </Typography>
-      <div className="overflow-x-auto mb-8">
-        <table className="w-full text-left">
-          <thead>
-            <tr>
-              <th className="p-2 border-b">Datum</th>
-              <th className="p-2 border-b">Cena (€)</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="px-4 mb-12 max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <Typography variant="h5" className="font-semibold mb-4">
+            Zgodovina cen
+          </Typography>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr>
+                  <th className="p-2 border-b">Datum</th>
+                  <th className="p-2 border-b">Cena (€)</th>
+                </tr>
+              </thead>
+              <tbody>
                 <td className="p-2 border-b">{new Date(product.updatedAt).toLocaleDateString("sl-SI")}</td>
                 <td className="p-2 border-b">{parseFloat(product.price).toFixed(2)}</td>
           </tbody>
-        </table>
-      </div>
+            </table>
+          </div>
+        </div>
+        <div>
+          <Typography variant="h5" className="font-semibold mb-4 text-center">
+            Trend cen
+          </Typography>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={product}>
+              <XAxis dataKey="updatedAt" />
+              <YAxis domain={["auto", "auto"]} />
+              <Tooltip />
+              <Line type="monotone" dataKey="price" stroke="#8884d8" dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Komentarji */}

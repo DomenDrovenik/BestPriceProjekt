@@ -79,8 +79,8 @@ function parsePrice(priceStr) {
     const items = await page.$$eval('.odsc-tile', tiles =>
       tiles.map(el => ({
         name: el.querySelector('.product-grid-box__title')?.innerText.trim() || null,
-        price: el.querySelector('.ods-price__value')?.innerText.trim() || null,
-        originalPrice: el.querySelector('.ods-price__stroke-price')?.innerText.trim() || null,
+        actionPrice: el.querySelector('.ods-price__value')?.innerText.trim() || null,
+        price: el.querySelector('.ods-price__stroke-price')?.innerText.trim() || el.querySelector('.ods-price__value')?.innerText.trim() || null,
         dostopno: el.querySelector('.ods-badge__label')?.innerText.trim() || null,
         opombe: el.querySelector('.ods-price__box-content-wrapper')?.innerText.trim() || null,
         image: el.querySelector('img')?.src || null,
@@ -89,7 +89,7 @@ function parsePrice(priceStr) {
     for (const item of items) {
       item.category = title;
       const newPrice = parsePrice(item.price);
-      const originalP = item.originalPrice ? parsePrice(item.originalPrice) : null;
+      const actionP = item.actionPrice ? parsePrice(item.actionPrice) : null;
 
       const filter = { name: item.name };
       const existing = await collection.findOne(filter);
@@ -97,7 +97,7 @@ function parsePrice(priceStr) {
         const doc = {
           name: item.name,
           price: newPrice,
-          originalPrice: originalP,
+          actionPrice: actionP,
           previousPrices: [],
           dostopno: item.dostopno,
           opombe: item.opombe,
