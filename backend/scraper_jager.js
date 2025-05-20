@@ -20,7 +20,7 @@ const productSchema = new mongoose.Schema({
   image: String,
   akcija: String,
   category: String,
-  priceHistory: [
+  previousPrices: [
     {
       price: Number,
       date: Date
@@ -144,7 +144,12 @@ async function gotoWithRetry(page, url, retries = 3) {
 
       const newPrice = item.price ? parseFloat(item.price) : null;
       const originalP = item.originalPrice ? parseFloat(item.originalPrice) : null;
-      const priceEntry = { price: newPrice, date: new Date() };
+
+      const wasInAkcija = existing?.originalPrice !== null && existing?.originalPrice !== undefined;
+      const isNowInAkcija = originalP !== null;
+      const akcijaEnded = wasInAkcija && !isNowInAkcija;
+
+      const priceChanged = existing && existing.price !== newPrice;
 
       if (!existing) {
         const newDoc = new JagerProduct({
@@ -154,15 +159,16 @@ async function gotoWithRetry(page, url, retries = 3) {
           image: item.image,
           akcija: item.akcija ? "true" : "false",
           category: item.category,
-          priceHistory: [priceEntry],
+          previousPrices: [{ price: newPrice, date: new Date() }],
           updatedAt: new Date()
         });
         await newDoc.save();
         savedCount++;
-      } else if (existing.price !== newPrice) {
-        existing.priceHistory.push(priceEntry);
+      } else if (priceChanged || akcijaEnded) {
+        existing.previousPrices.push({ price: existing.price, date: new Date() });
+
         existing.price = newPrice;
-        existing.originalPrice = originalP;
+        existing.originalPrice = isNowInAkcija ? originalP : null;
         existing.akcija = item.akcija ? "true" : "false";
         existing.image = item.image;
         existing.category = item.category;
@@ -170,7 +176,6 @@ async function gotoWithRetry(page, url, retries = 3) {
         await existing.save();
         savedCount++;
       } else {
-        // samo posodobi čas, če cena ni nova
         existing.updatedAt = new Date();
         await existing.save();
       }

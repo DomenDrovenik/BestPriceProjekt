@@ -14,7 +14,7 @@ const mercatorSchema = new mongoose.Schema({
   regularPrice: Number,
   image: String,
   category: String,
-  priceHistory: [
+  previousPrices: [
     {
       price: Number,
       date: Date
@@ -23,7 +23,7 @@ const mercatorSchema = new mongoose.Schema({
   updatedAt: Date
 });
 
-const MercatorProduct = mongoose.model('MercatorProduct', mercatorSchema);
+const MercatorProduct = mongoose.model('MercatorProduct', mercatorSchema, 'mercatorproducts');
 
 // URL-ji kategorij
 const urls = [
@@ -46,8 +46,8 @@ const urls = [
 
 const scrapeMercator = async () => {
   console.log(`🛒 Začenjam zajem podatkov iz Mercator...`);
-  
-  const browser = await puppeteer.launch({ headless: true , args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   const pages = await Promise.all(urls.map(() => browser.newPage()));
   let allProducts = [];
 
@@ -90,12 +90,12 @@ const scrapeMercator = async () => {
           const regularPrice = item.querySelector('.price-old.lib-product-normal-price')?.innerText.trim().replace(' €', '') || null;
           const actionPrice = regularPrice ? price : null;
 
-          data.push({ 
-            name, 
-            price: actionPrice || price, 
-            regularPrice, 
-            image, 
-            category: categoryInfo 
+          data.push({
+            name,
+            price: actionPrice || price,
+            regularPrice,
+            image,
+            category: categoryInfo
           });
         });
 
@@ -136,19 +136,17 @@ async function autoScroll(page) {
     const items = await scrapeMercator();
     let savedCount = 0;
 
+    const parsePrice = (value) => {
+      if (!value || value === 'Ni cene') return null;
+      return parseFloat(value.replace(',', '.').trim());
+    };
+
     for (const item of items) {
       const filter = { name: item.name };
       const existing = await MercatorProduct.findOne(filter);
 
-      const parsePrice = (value) => {
-        if (!value || value === 'Ni cene') return null;
-        return parseFloat(value.replace(',', '.').trim());
-        };
-
-    const newPrice = parsePrice(item.price);
-    const regularP = parsePrice(item.regularPrice);
-
-      const priceEntry = { price: newPrice, date: new Date() };
+      const newPrice = parsePrice(item.price);
+      const regularP = parsePrice(item.regularPrice);
 
       if (!existing) {
         const newDoc = new MercatorProduct({
@@ -157,24 +155,34 @@ async function autoScroll(page) {
           regularPrice: regularP,
           image: item.image,
           category: item.category,
-          priceHistory: [priceEntry],
+          previousPrices: [{ price: newPrice, date: new Date() }],
           updatedAt: new Date()
         });
         await newDoc.save();
         savedCount++;
-      } else if (existing.price !== newPrice) {
-        existing.priceHistory.push(priceEntry);
-        existing.price = newPrice;
-        existing.regularPrice = regularP;
-        existing.image = item.image;
-        existing.category = item.category;
-        existing.updatedAt = new Date();
-        await existing.save();
-        savedCount++;
       } else {
-        // cena se ni spremenila, posodobi samo čas
-        existing.updatedAt = new Date();
-        await existing.save();
+        const wasInAkcija = existing.regularPrice !== null;
+        const isNowInAkcija = regularP !== null;
+        const priceChanged = existing.price !== newPrice;
+        const akcijaEnded = wasInAkcija && !isNowInAkcija;
+
+        if (priceChanged || akcijaEnded) {
+          existing.previousPrices.push({
+            price: existing.price,
+            date: new Date()
+          });
+
+          existing.price = newPrice;
+          existing.regularPrice = regularP;
+          existing.image = item.image;
+          existing.category = item.category;
+          existing.updatedAt = new Date();
+          await existing.save();
+          savedCount++;
+        } else {
+          existing.updatedAt = new Date();
+          await existing.save();
+        }
       }
     }
 
