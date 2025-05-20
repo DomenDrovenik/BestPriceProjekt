@@ -94,18 +94,22 @@ function parsePrice(priceStr) {
       const filter = { name: item.name };
       const existing = await collection.findOne(filter);
       if (!existing) {
-        const doc = {
+        // pick initial price for history
+        const initial = actionP != null ? actionP : newPrice;
+      
+        await collection.insertOne({
           name: item.name,
           price: newPrice,
           actionPrice: actionP,
-          previousPrices: [],
+          previousPrices: [
+            { price: initial, date: new Date() }
+          ],
           dostopno: item.dostopno,
           opombe: item.opombe,
           image: item.image,
           category: item.category,
-          updatedAt: new Date()
-        };
-        await collection.insertOne(doc);
+          updatedAt: new Date(),
+        });
       } else if (existing.price !== newPrice) {
         await collection.updateOne(
           filter,
