@@ -250,6 +250,6 @@ async function runTusScraper() {
   }
 }
 
-// runTusScraper();
+runTusScraper();
 
-module.exports = runTusScraper;
+// module.exports = runTusScraper;

@@ -158,46 +158,59 @@ app.get("/api/products/:id", async (req, res) => {
 
 app.get("/api/discountedProducts", async (req, res) => {
   try {
-    // const tus = await tusCollection
-    //   .find({ actionPrice: { $exists: true, $ne: null } })
-    //   .toArray();
+    const collections = [
+      tusCollection,
+      merkatorCollection,
+      jagerCollection,
+      lidlCollection,
+      hoferCollection,
+    ];
 
-    const tus = await tusCollection
-      .aggregate([
-        { $match: { actionPrice: { $exists: true, $ne: null } } },
-        {
-          $addFields: {
-            discountPercentage: {
-              $multiply: [
-                {
-                  $divide: [
-                    {
-                      $subtract: [
-                        { $toDouble: "$price" },
-                        { $toDouble: "$actionPrice" },
-                      ],
-                    },
-                    { $toDouble: "$price" },
-                  ],
-                },
-                100,
-              ],
+    const allDiscounts = [];
+
+    for (const collection of collections) {
+      const data = await collection
+        .aggregate([
+          { $match: { actionPrice: { $exists: true, $ne: null } } },
+          {
+            $addFields: {
+              discountPercentage: {
+                $multiply: [
+                  {
+                    $divide: [
+                      {
+                        $subtract: [
+                          { $toDouble: "$price" },
+                          { $toDouble: "$actionPrice" },
+                        ],
+                      },
+                      { $toDouble: "$price" },
+                    ],
+                  },
+                  100,
+                ],
+              },
+              source: collection.collectionName,
             },
           },
-        },
-        { $sort: { discountPercentage: -1 } },
-        { $limit: 5 },
-      ])
-      .toArray();
+        ])
+        .toArray();
 
-    const withTrend = tus.map((item) => {
+      allDiscounts.push(...data);
+    }
+
+    const topDiscounts = allDiscounts
+      .sort((a, b) => b.discountPercentage - a.discountPercentage)
+      .slice(0, 5);
+
+    const withTrend = topDiscounts.map((item) => {
       const previous = Array.isArray(item.previousPrices)
         ? item.previousPrices
         : [];
       return {
         ...item,
         trend: [
-          ...previous.map((p) => ({ pv: parseFloat(p) })),
+          ...previous.map((p) => ({ pv: parseFloat(p.price) })),
           { pv: parseFloat(item.price) },
           { pv: parseFloat(item.actionPrice) },
         ],
@@ -206,7 +219,7 @@ app.get("/api/discountedProducts", async (req, res) => {
 
     res.status(200).json(withTrend);
   } catch (error) {
-    console.error("Napaka pri pridobivanju izdelkov:", error);
+    console.error("Napaka pri pridobivanju znižanih izdelkov:", error);
     res.status(500).json({ message: "Napaka na strežniku" });
   }
 });
