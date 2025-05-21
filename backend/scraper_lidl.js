@@ -101,24 +101,33 @@ function parsePrice(priceStr) {
 
     const items = await page.$$eval(".odsc-tile", (tiles) =>
       tiles
-        .map((el) => ({
-          name:
-            el.querySelector(".product-grid-box__title")?.innerText.trim() ||
-            null,
-          actionPrice:
-            el.querySelector(".ods-price__value")?.innerText.trim() || null,
-          price:
+        .map((el) => {
+          const rawAction =
+            el.querySelector(".ods-price__value")?.innerText.trim() || null;
+          const rawPrice = (
             el.querySelector(".ods-price__stroke-price")?.innerText.trim() ||
-            el.querySelector(".ods-price__value")?.innerText.trim() ||
-            null,
-          dostopno:
-            el.querySelector(".ods-badge__label")?.innerText.trim() || null,
-          opombe:
-            el
-              .querySelector(".ods-price__box-content-wrapper")
-              ?.innerText.trim() || null,
-          image: el.querySelector("img")?.src || null,
-        }))
+            rawAction
+          )?.trim();
+
+          // if actionPrice equals price, drop it
+          const actionPrice =
+            rawAction && rawPrice && rawAction === rawPrice ? null : rawAction;
+
+          return {
+            name:
+              el.querySelector(".product-grid-box__title")?.innerText.trim() ||
+              null,
+            actionPrice,
+            price: rawPrice,
+            dostopno:
+              el.querySelector(".ods-badge__label")?.innerText.trim() || null,
+            opombe:
+              el
+                .querySelector(".ods-price__box-content-wrapper")
+                ?.innerText.trim() || null,
+            image: el.querySelector("img")?.src || null,
+          };
+        })
         .filter((p) => p.name && p.price)
     );
     for (const item of items) {

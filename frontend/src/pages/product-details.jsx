@@ -21,7 +21,7 @@ import {
     YAxis,
     Tooltip,
   } from "recharts";
-import { PageTitle } from "@/widgets/layout";
+import { PageTitle, PriceComparison } from "@/widgets/layout";
 
 export function ProductDetails() {
     const { id } = useParams();
@@ -176,6 +176,8 @@ export function ProductDetails() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      <PriceComparison productName={product.name} />
 
 
       {/* Komentarji */}

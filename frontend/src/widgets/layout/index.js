@@ -5,3 +5,4 @@ export * from "@/widgets/layout/page-title";
 export * from "@/widgets/layout/howItWorks";
 export * from "@/widgets/layout/topDeals";
 export * from "@/widgets/layout/callToAction";
+export * from "@/widgets/layout/priceComparison";

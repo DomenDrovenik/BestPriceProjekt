@@ -224,6 +224,63 @@ app.get("/api/discountedProducts", async (req, res) => {
   }
 });
 
+app.get("/api/compare-prices", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ message: "Missing name" });
+
+  // 1) split the target name into significant words
+  const words = name
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 3); // skip very short words
+
+  if (!words.length) {
+    return res.json([]);
+  }
+
+  // 2) build an $and array of case-insensitive regex conditions
+  const regexAnd = words.map((w) => ({
+    name: { $regex: new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") },
+  }));
+
+  // 3) store collections + friendly labels
+  const storeLabels = {
+    tus: "Tuš",
+    merkators: "Mercator",
+    jagers: "Jager",
+    lidl: "Lidl",
+    hofer: "Hofer",
+  };
+  const cols = [
+    { col: tusCollection,     key: "tus"       },
+    { col: merkatorCollection, key: "merkators" },
+    { col: jagerCollection,    key: "jagers"    },
+    { col: lidlCollection,     key: "lidl"      },
+    { col: hoferCollection,    key: "hofer"     },
+  ];
+
+  const results = [];
+
+  // 4) for each store, findOne a product matching **all** words
+  for (const { col, key } of cols) {
+    const doc = await col.findOne({ $and: regexAnd });
+    if (doc) {
+      results.push({
+        store: storeLabels[key] || key,
+        price: doc.actionPrice != null ? doc.actionPrice : doc.price,
+        image: doc.image,
+        name: doc.name,
+      });
+    }
+  }
+
+  // 5) return at most one per store, sorted by price
+  results.sort((a, b) => a.price - b.price);
+  res.json(results);
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   connectToMongoDB();
