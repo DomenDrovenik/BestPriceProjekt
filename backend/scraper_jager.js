@@ -15,14 +15,14 @@ mongoose.connect(MONGO_URI, {
 // Mongoose shema
 const productSchema = new mongoose.Schema({
   name: String,
-  price: Number,
-  originalPrice: Number,
+  price: String,
+  actionPrice: String,
   image: String,
   akcija: String,
   category: String,
   previousPrices: [
     {
-      price: Number,
+      price: String,
       date: Date
     }
   ],
@@ -74,30 +74,28 @@ const scrapeJager = async () => {
           const image = item.querySelector('img')?.src || 'Ni podatka';
           const isDiscounted = !!item.querySelector('.badge-action');
 
-          let price = "Ni podatka";
-          let originalPrice = "Ni podatka";
+          let regularPrice = null;
+          let actionPrice = null;
 
           if (isDiscounted) {
             const euros = item.querySelector('.price').childNodes[0]?.textContent.trim();
             const cents = item.querySelector('.price .right span')?.innerText.trim();
-            price = euros && cents ? `${euros}${cents}` : 'Ni podatka';
+            const fullPrice = euros && cents ? `${euros}${cents}` : null;
+
+            actionPrice = fullPrice ? parseFloat(fullPrice.replace(',', '.')) : null;
 
             const originalPriceElement = item.querySelector('.originalPrice');
-            originalPrice = originalPriceElement ? originalPriceElement.innerText.replace(/[^0-9,\.]/g, '').trim() : 'Ni podatka';
-
-            if (price.includes(',')) price = price.replace(',', '.');
-            if (originalPrice.includes(',')) originalPrice = originalPrice.replace(',', '.');
+            regularPrice = originalPriceElement ? parseFloat(originalPriceElement.innerText.replace(/[^0-9,\.]/g, '').replace(',', '.')) : null;
           } else {
             const priceElement = item.querySelector('.price') || item.querySelector('.bottom-box');
-            price = priceElement ? priceElement.innerText.trim() : 'Ni podatka';
-            price = price.replace(/[^\d,\.]/g, '').trim();
-            if (price.includes(',')) price = price.replace(',', '.');
+            const fullPrice = priceElement ? priceElement.innerText.trim().replace(/[^\d,\.]/g, '').replace(',', '.') : null;
+            regularPrice = fullPrice ? parseFloat(fullPrice) : null;
           }
 
           productList.push({
             name,
-            price: price !== "Ni podatka" ? parseFloat(price) : null,
-            originalPrice: originalPrice !== "Ni podatka" ? parseFloat(originalPrice) : null,
+            price: regularPrice,
+            actionPrice,
             image,
             akcija: isDiscounted,
             category: document.querySelector('ol.breadcrumb li.active')?.innerText.trim() || 'Ni kategorije'
@@ -138,46 +136,53 @@ async function gotoWithRetry(page, url, retries = 3) {
     const items = await scrapeJager();
     let savedCount = 0;
 
+    const normalizePrice = (val) => {
+      if (!val || val === 'Ni podatka') return null;
+      return val.toString().replace(',', '.').trim(); // string z decimalno piko
+    };
+
     for (const item of items) {
       const filter = { name: item.name };
       const existing = await JagerProduct.findOne(filter);
 
-      const newPrice = item.price ? parseFloat(item.price) : null;
-      const originalP = item.originalPrice ? parseFloat(item.originalPrice) : null;
+      const price = normalizePrice(item.price);
+      const actionPrice = normalizePrice(item.actionPrice);
+      const currentPrice = actionPrice ?? price;
 
-      const wasInAkcija = existing?.originalPrice !== null && existing?.originalPrice !== undefined;
-      const isNowInAkcija = originalP !== null;
-      const akcijaEnded = wasInAkcija && !isNowInAkcija;
+      const lastStoredPrice =
+        existing?.previousPrices?.length > 0
+          ? normalizePrice(existing.previousPrices[existing.previousPrices.length - 1].price)
+          : null;
 
-      const priceChanged = existing && existing.price !== newPrice;
+      const shouldAddToHistory =
+        currentPrice !== null && currentPrice !== lastStoredPrice;
 
       if (!existing) {
         const newDoc = new JagerProduct({
           name: item.name,
-          price: newPrice,
-          originalPrice: originalP,
+          price,
+          actionPrice,
           image: item.image,
           akcija: item.akcija ? "true" : "false",
           category: item.category,
-          previousPrices: [{ price: newPrice, date: new Date() }],
+          previousPrices: shouldAddToHistory ? [{ price: currentPrice, date: new Date() }] : [],
           updatedAt: new Date()
         });
         await newDoc.save();
         savedCount++;
-      } else if (priceChanged || akcijaEnded) {
-        existing.previousPrices.push({ price: existing.price, date: new Date() });
+      } else {
+        if (shouldAddToHistory) {
+          existing.previousPrices.push({ price: currentPrice, date: new Date() });
+        }
 
-        existing.price = newPrice;
-        existing.originalPrice = isNowInAkcija ? originalP : null;
+        existing.price = price;
+        existing.actionPrice = actionPrice;
         existing.akcija = item.akcija ? "true" : "false";
         existing.image = item.image;
         existing.category = item.category;
         existing.updatedAt = new Date();
         await existing.save();
         savedCount++;
-      } else {
-        existing.updatedAt = new Date();
-        await existing.save();
       }
     }
 

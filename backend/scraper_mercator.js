@@ -10,13 +10,13 @@ mongoose.connect(MONGO_URI)
 // MongoDB shema
 const mercatorSchema = new mongoose.Schema({
   name: String,
-  price: Number,
-  regularPrice: Number,
+  price: String,          // navadna cena
+  actionPrice: String,    // akcijska cena, če obstaja
   image: String,
   category: String,
   previousPrices: [
     {
-      price: Number,
+      price: String,
       date: Date
     }
   ],
@@ -73,27 +73,26 @@ const scrapeMercator = async () => {
           const name = item.querySelector('.product-name a')?.getAttribute('title')?.trim();
           if (!name) return;
 
-          const price = item.querySelector('.lib-product-price')?.innerText.trim().replace(' €', '') || 'Ni cene';
+          const priceText = item.querySelector('.lib-product-price')?.innerText.trim().replace(' €', '') || null;
+          const oldPriceText = item.querySelector('.price-old.lib-product-normal-price')?.innerText.trim().replace(' €', '') || null;
           const image = item.querySelector('.product-image img')?.src || 'Ni slike';
-          const analyticsData = item.getAttribute('data-analytics-object');
 
+          const analyticsData = item.getAttribute('data-analytics-object');
           let categoryInfo = '';
           if (analyticsData) {
             try {
               const parsedData = JSON.parse(analyticsData);
               categoryInfo = parsedData.item_category || 'Ni kategorije';
-            } catch (e) {
+            } catch {
               categoryInfo = 'Napaka pri branju kategorije';
             }
           }
 
-          const regularPrice = item.querySelector('.price-old.lib-product-normal-price')?.innerText.trim().replace(' €', '') || null;
-          const actionPrice = regularPrice ? price : null;
-
           data.push({
             name,
-            price: actionPrice || price,
-            regularPrice,
+            price: priceText,
+            actionPrice: oldPriceText ? priceText : null,
+            regularPrice: oldPriceText,
             image,
             category: categoryInfo
           });
@@ -107,7 +106,6 @@ const scrapeMercator = async () => {
   allProducts = allResults.flat();
   console.log(`\n📝 Skupno število najdenih izdelkov: ${allProducts.length}`);
   await browser.close();
-  console.log(`🚀 Podatki uspešno zajeti!`);
   return allProducts;
 };
 
@@ -136,55 +134,63 @@ async function autoScroll(page) {
     const items = await scrapeMercator();
     let savedCount = 0;
 
-    const parsePrice = (value) => {
-      if (!value || value === 'Ni cene') return null;
-      return parseFloat(value.replace(',', '.').trim());
-    };
+const parsePrice = (value) => {
+  if (!value || value === 'Ni cene') return null;
+  return value.replace(',', '.').trim(); // vrne string z . namesto ,
+};
 
-    for (const item of items) {
-      const filter = { name: item.name };
-      const existing = await MercatorProduct.findOne(filter);
+for (const item of items) {
+  const filter = { name: item.name };
+  const existing = await MercatorProduct.findOne(filter);
 
-      const newPrice = parsePrice(item.price);
-      const regularP = parsePrice(item.regularPrice);
+  const price = parsePrice(item.regularPrice) ?? parsePrice(item.price); // navadna cena kot string
+  const actionPrice = item.regularPrice ? parsePrice(item.price) : null; // akcijska cena kot string
+  const currentPrice = actionPrice ?? price;
 
-      if (!existing) {
-        const newDoc = new MercatorProduct({
-          name: item.name,
-          price: newPrice,
-          regularPrice: regularP,
-          image: item.image,
-          category: item.category,
-          previousPrices: [{ price: newPrice, date: new Date() }],
-          updatedAt: new Date()
-        });
-        await newDoc.save();
-        savedCount++;
-      } else {
-        const wasInAkcija = existing.regularPrice !== null;
-        const isNowInAkcija = regularP !== null;
-        const priceChanged = existing.price !== newPrice;
-        const akcijaEnded = wasInAkcija && !isNowInAkcija;
+  const lastStoredPrice = existing?.previousPrices?.length > 0
+    ? existing.previousPrices[existing.previousPrices.length - 1].price
+    : null;
 
-        if (priceChanged || akcijaEnded) {
-          existing.previousPrices.push({
-            price: existing.price,
-            date: new Date()
-          });
+  const shouldAddToHistory =
+    currentPrice !== null && currentPrice !== lastStoredPrice;
 
-          existing.price = newPrice;
-          existing.regularPrice = regularP;
-          existing.image = item.image;
-          existing.category = item.category;
-          existing.updatedAt = new Date();
-          await existing.save();
-          savedCount++;
-        } else {
-          existing.updatedAt = new Date();
-          await existing.save();
-        }
-      }
+  if (!existing) {
+    const newDoc = new MercatorProduct({
+      name: item.name,
+      price,
+      actionPrice,
+      image: item.image,
+      category: item.category,
+      previousPrices: shouldAddToHistory ? [{ price: currentPrice, date: new Date() }] : [],
+      updatedAt: new Date()
+    });
+    await newDoc.save();
+    savedCount++;
+  } else {
+    const changed =
+      existing.price !== price ||
+      existing.actionPrice !== actionPrice ||
+      existing.image !== item.image ||
+      existing.category !== item.category;
+
+    if (shouldAddToHistory) {
+      existing.previousPrices.push({ price: currentPrice, date: new Date() });
     }
+
+    if (changed || shouldAddToHistory) {
+      existing.price = price;
+      existing.actionPrice = actionPrice;
+      existing.image = item.image;
+      existing.category = item.category;
+      existing.updatedAt = new Date();
+      await existing.save();
+      savedCount++;
+    } else {
+      existing.updatedAt = new Date();
+      await existing.save();
+    }
+  }
+}
 
     console.log(`✅ Shranjenih ali posodobljenih izdelkov: ${savedCount}`);
     process.exit(0);
