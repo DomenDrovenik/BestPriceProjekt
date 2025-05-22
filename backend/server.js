@@ -207,13 +207,31 @@ app.get("/api/discountedProducts", async (req, res) => {
       const previous = Array.isArray(item.previousPrices)
         ? item.previousPrices
         : [];
+
+      const price = parseFloat(item.price);
+      const actionPrice = parseFloat(item.actionPrice);
+
+      const previousValues = previous.map((p) => parseFloat(p.price));
+
+      let trendArray = [...previous.map((p) => ({ pv: parseFloat(p.price) }))];
+
+      const isPriceInPrevious = previousValues.includes(price);
+      const isActionInPrevious = previousValues.includes(actionPrice);
+
+      if (!isPriceInPrevious && isActionInPrevious) {
+        const index = trendArray.findIndex((t) => t.pv === actionPrice);
+        if (index !== -1) {
+          trendArray.splice(index, 0, { pv: price });
+        }
+      }
+
+      if (!isActionInPrevious) {
+        trendArray.push({ pv: actionPrice });
+      }
+
       return {
         ...item,
-        trend: [
-          ...previous.map((p) => ({ pv: parseFloat(p.price) })),
-          { pv: parseFloat(item.price) },
-          { pv: parseFloat(item.actionPrice) },
-        ],
+        trend: trendArray,
       };
     });
 
@@ -254,11 +272,11 @@ app.get("/api/compare-prices", async (req, res) => {
     hofer: "Hofer",
   };
   const cols = [
-    { col: tusCollection,     key: "tus"       },
+    { col: tusCollection, key: "tus" },
     { col: merkatorCollection, key: "merkators" },
-    { col: jagerCollection,    key: "jagers"    },
-    { col: lidlCollection,     key: "lidl"      },
-    { col: hoferCollection,    key: "hofer"     },
+    { col: jagerCollection, key: "jagers" },
+    { col: lidlCollection, key: "lidl" },
+    { col: hoferCollection, key: "hofer" },
   ];
 
   const results = [];
