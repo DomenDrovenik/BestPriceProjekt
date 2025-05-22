@@ -18,7 +18,8 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { dealsData } from "@/data/dealsData"; // v naslednjem koraku definiraj to
+import { dealsData } from "@/data/dealsData";
+import { Link as RouterLink } from "react-router-dom"; // v naslednjem koraku definiraj to
 
 
 async function fetchTopDiscountedProducts() {
@@ -52,9 +53,9 @@ export function TopDeals() {
 },[])
 
 
-  const top5 = dealsData
-    .sort((a, b) => (b.oldPrice - b.newPrice) / b.oldPrice - (a.oldPrice - a.newPrice) / a.oldPrice)
-    .slice(0, 5);
+  // const top5 = dealsData
+  //   .sort((a, b) => (b.oldPrice - b.newPrice) / b.oldPrice - (a.oldPrice - a.newPrice) / a.oldPrice)
+  //   .slice(0, 5);
 
   return (
     <section className="py-16 bg-white">
@@ -72,52 +73,59 @@ export function TopDeals() {
             const trendColor = percent > 0 ? "text-green-500" : "text-red-500";
 
             return (
-              <Card key={item._id} className="hover:shadow-lg transition-shadow">
-                <CardBody className="p-4 flex flex-col items-center">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="h-24 w-24 object-cover rounded-md mb-3"
-                  />
-                  <Typography variant="h6" className="font-medium mb-1 text-center">
-                    {item.name}
-                  </Typography>
-                  <div className="flex items-baseline gap-2 mb-2">
-                    <Typography
-                      variant="small"
-                      className="line-through text-gray-400"
-                    >
-                      {item.price} €
-                    </Typography>
-                    <Typography variant="h6" className="font-semibold">
-                      {item.actionPrice} €
-                    </Typography>
-                  </div>
-                  <div className="flex items-center gap-1 mb-3">
-                    <TrendIcon className={`h-5 w-5 ${trendColor}`} />
-                    <Typography variant="small" className={trendColor}>
-                      {percent}% 
-                    </Typography>
-                  </div>
-                  <div className="w-full h-16 mb-3">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={item.trend}>
-                        <Tooltip cursor={false} />
-                        <Line
-                          type="monotone"
-                          dataKey="pv"
-                          stroke="#3b82f6"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardBody>
-              </Card>
+              <Card key={item._id} className="shadow-lg hover:shadow-xl rounded-xl overflow-hidden">
+  <RouterLink
+    to={`/products/${item._id}`}
+    className="block p-4 hover:no-underline"
+  >
+    <CardBody className="flex flex-col items-center">
+      <img
+        src={item.image}
+        alt={item.name}
+        className="h-24 w-24 object-cover rounded-md mb-3"
+      />
+      <Typography variant="h6" className="font-medium mb-1 text-center">
+        {item.name}
+      </Typography>
+      <div className="flex items-baseline gap-2 mb-2">
+        <Typography variant="small" className="line-through text-gray-400">
+          {item.price} €
+        </Typography>
+        <Typography variant="h6" className="font-semibold">
+          {item.actionPrice} €
+        </Typography>
+      </div>
+      <div className="flex items-center gap-1 mb-3">
+        <TrendIcon className={`h-5 w-5 ${trendColor}`} />
+        <Typography variant="small" className={trendColor}>
+          {percent}%
+        </Typography>
+      </div>
+      <div className="w-full h-16 mb-3">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={item.trend}>
+            <Tooltip cursor={false} />
+            <Line
+              type="monotone"
+              dataKey="pv"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </CardBody>
+  </RouterLink>
+</Card>
+
+
             );
           })}
         </div>
+        <RouterLink
+        to={`/products?onlyDiscounted=true`}
+        className="min-w-1/4 flex-1 mx-2 overflow-hidden">
         <Button
           variant="gradient"
           size="md"
@@ -127,6 +135,7 @@ export function TopDeals() {
         >
           Oglej si več akcij
         </Button>
+        </RouterLink>
       </div>
     </section>
   );

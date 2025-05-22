@@ -116,6 +116,18 @@ export function Products() {
   }, [selectedStores]);
 
   useEffect(() => {
+  const initialCat = searchParams.get("category");
+  if (initialCat) {
+    setSelectedCats([decodeURIComponent(initialCat)]);
+  }
+
+  const initialDiscount = searchParams.get("onlyDiscounted");
+  if (initialDiscount === "true") {
+    setOnlyDiscounted(true);
+  }
+}, [searchParams]);
+
+  useEffect(() => {
     setCurrentPage(1);
   }, [search, selectedCats, priceRange]);
 
