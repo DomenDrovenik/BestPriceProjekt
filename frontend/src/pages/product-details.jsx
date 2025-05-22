@@ -22,6 +22,8 @@ import {
     Tooltip,
   } from "recharts";
 import { PageTitle, PriceComparison } from "@/widgets/layout";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
 
 export function ProductDetails() {
     const { id } = useParams();
@@ -29,6 +31,19 @@ export function ProductDetails() {
     const [history, setHistory] = useState([]);
     const [comments, setComments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [newComment, setNewComment] = useState("");
+    const [newRating, setNewRating] = useState(0);
+    const [currentUser, setCurrentUser] = useState(null);
+
+    
+
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    setCurrentUser(user);
+  });
+
+  return () => unsubscribe(); // odjava listenerja ko se komponenta uniči
+}, []);
   
     useEffect(() => {
       const load = async () => {
@@ -78,6 +93,36 @@ export function ProductDetails() {
       </div>
     );
   }
+  const handleCommentSubmit = async () => {
+  if (!currentUser || newRating === 0 || !newComment.trim()) return;
+
+  const comment = {
+    userId: currentUser.uid,
+    user: {
+      name: currentUser.name || "Neznan uporabnik",
+      surname: currentUser.surname || "",
+      avatar: currentUser.photoURL || "",
+    },
+    rating: newRating,
+    text: newComment,
+    date: new Date().toISOString(),
+  };
+
+  try {
+    await fetch(`http://localhost:3000/api/products/${id}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(comment),
+    });
+
+    
+    setNewComment("");
+    setNewRating(0);
+    setComments([...comments, comment]);
+  } catch (err) {
+    console.error("Napaka pri pošiljanju komentarja:", err);
+  }
+};
 
   return (
     <>
@@ -181,43 +226,86 @@ export function ProductDetails() {
 
 
       {/* Komentarji */}
-      <div className="px-4 mb-12">
-      <Typography variant="h3" className="font-semibold mb-4">
-        Komentarji in ocene
-      </Typography>
-      <div className="space-y-6">
-        {comments.length === 0 && (
-          <Typography className="text-gray-500">Ni komentarjev.</Typography>
-        )}
-        {comments.map(({ id: cid, user, rating, text, date }) => (
-          <Card key={cid} className="p-4">
-            <div className="flex items-center mb-2">
-              <Avatar
-                src={user.avatar}
-                alt={user.name}
-                variant="circular"
-                className="mr-3 h-10 w-10"
-              />
-              <div>
-                <Typography variant="h6">{user.name}</Typography>
-                <Typography variant="small" className="text-gray-500">
-                  {new Date(date).toLocaleDateString("sl-SI")}
-                </Typography>
-              </div>
-            </div>
-            <div className="flex items-center mb-2">
-              {[...Array(5)].map((_, i) => (
-                <StarIcon
-                  key={i}
-                  className={`h-5 w-5 ${i < rating ? "text-yellow-400" : "text-gray-300"}`}
-                />
-              ))}
-            </div>
-            <Typography>{text}</Typography>
-          </Card>
+      <div className="px-4 mb-12 max-w-2xl mx-auto">
+  <Typography variant="h3" className="font-semibold mb-6 text-center">
+    Komentarji in ocene
+  </Typography>
+
+  <div className="space-y-6">
+    {comments.length === 0 && (
+      <Typography className="text-gray-500 text-center">Ni komentarjev.</Typography>
+    )}
+    {comments.map(({ id: cid, user, rating, text, date }) => (
+      <Card key={cid} className="p-4">
+        <div className="flex items-center mb-2">
+          <Avatar
+            src={user.avatar}
+            alt={user.name}
+            variant="circular"
+            className="mr-3 h-10 w-10"
+          />
+          <div>
+            <Typography variant="h6">{user.name}</Typography>
+            <Typography variant="small" className="text-gray-500">
+              {new Date(date).toLocaleDateString("sl-SI")}
+            </Typography>
+          </div>
+        </div>
+        <div className="flex items-center mb-2">
+          {[...Array(5)].map((_, i) => (
+            <StarIcon
+              key={i}
+              className={`h-5 w-5 ${i < rating ? "text-yellow-400" : "text-gray-300"}`}
+            />
+          ))}
+        </div>
+        <Typography>{text}</Typography>
+      </Card>
+    ))}
+  </div>
+
+  {/* Vnos novega komentarja */}
+  <div className="mt-8">
+    <Typography variant="h5" className="mb-3 text-center">
+      Dodaj komentar
+    </Typography>
+
+    <div className="flex flex-col gap-4">
+      <textarea
+        className="border rounded-md p-2 w-full resize-none"
+        rows={4}
+        placeholder="Tvoj komentar..."
+        value={newComment}
+        onChange={(e) => setNewComment(e.target.value)}
+      />
+
+      <div className="flex justify-center gap-1">
+        {[...Array(5)].map((_, i) => (
+          <StarIcon
+            key={i}
+            onClick={() => setNewRating(i + 1)}
+            className={`h-6 w-6 cursor-pointer ${
+              i < newRating ? "text-yellow-400" : "text-gray-300"
+            }`}
+          />
         ))}
       </div>
-      </div>
+
+      <button
+        className={`px-4 py-2 rounded-md text-white font-semibold transition ${
+          currentUser
+            ? "bg-blue-600 hover:bg-blue-700"
+            : "bg-gray-400 cursor-not-allowed"
+        }`}
+        onClick={handleCommentSubmit}
+        disabled={!currentUser || newRating === 0 || newComment.trim() === ""}
+      >
+        Objavi komentar
+      </button>
+    </div>
+  </div>
+</div>
+
     </>
   );
 }

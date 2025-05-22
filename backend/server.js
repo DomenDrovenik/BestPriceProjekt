@@ -299,6 +299,73 @@ app.get("/api/compare-prices", async (req, res) => {
   res.json(results);
 });
 
+app.post("/api/products/:id/comments", async (req, res) => {
+  const id = req.params.id;
+  const objectId = new ObjectId(id);
+  const newComment = req.body;
+
+  const collections = [
+    tusCollection,
+    merkatorCollection,
+    jagerCollection,
+    lidlCollection,
+    hoferCollection,
+  ];
+
+  try {
+    for (const collection of collections) {
+      const product = await collection.findOne({ _id: objectId });
+      if (product) {
+        const updatedComments = product.comments
+          ? [...product.comments, newComment]
+          : [newComment];
+
+        await collection.updateOne(
+          { _id: objectId },
+          { $set: { comments: updatedComments } }
+        );
+
+        return res
+          .status(200)
+          .json({ message: "Komentar dodan", comments: updatedComments });
+      }
+    }
+
+    res.status(404).json({ message: "Izdelek ni bil najden" });
+  } catch (error) {
+    console.error("Napaka pri dodajanju komentarja:", error);
+    res.status(500).json({ message: "Napaka na strežniku" });
+  }
+});
+
+app.get("/api/products/:id/comments", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const objectId = new ObjectId(id);
+
+    const collections = [
+      tusCollection,
+      merkatorCollection,
+      jagerCollection,
+      lidlCollection,
+      hoferCollection,
+    ];
+
+    for (const collection of collections) {
+      const product = await collection.findOne({ _id: objectId });
+
+      if (product) {
+        const comments = product.comments || [];
+        return res.status(200).json(comments);
+      }
+    }
+
+    res.status(200).json([]);
+  } catch (error) {
+    console.log("Error: " + error);
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   connectToMongoDB();
