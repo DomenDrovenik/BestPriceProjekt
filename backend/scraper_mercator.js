@@ -1,39 +1,17 @@
 const puppeteer = require("puppeteer");
-const mongoose = require("mongoose");
+const { MongoClient, ServerApiVersion } = require("mongodb");
 
-// MongoDB povezava
-const MONGO_URI =
-  "mongodb+srv://anja:anja@cluster0.bwlvpsm.mongodb.net/BestPrice?retryWrites=true&w=majority&appName=cluster0";
-mongoose
-  .connect(MONGO_URI)
-  .then(() => console.log("✅ Povezava z MongoDB uspešna"))
-  .catch((err) =>
-    console.error("❌ Napaka pri povezavi z MongoDB:", err.message)
-  );
-
-// MongoDB shema
-const mercatorSchema = new mongoose.Schema({
-  name: String,
-  price: String, // navadna cena
-  actionPrice: String, // akcijska cena, če obstaja
-  image: String,
-  category: String,
-  previousPrices: [
-    {
-      price: String,
-      date: Date,
-    },
-  ],
-  updatedAt: Date,
+const uri =
+  "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+  autoSelectFamily: false,
 });
 
-const MercatorProduct = mongoose.model(
-  "MercatorProduct",
-  mercatorSchema,
-  "mercatorproducts"
-);
-
-// URL-ji kategorij
 const urls = [
   "https://mercatoronline.si/brskaj#categories=14535405",
   "https://mercatoronline.si/brskaj#categories=14535446",
@@ -64,13 +42,9 @@ const scrapeMercator = async () => {
 
   console.log(`🔎 Odpiram strani...`);
   await Promise.all(
-    pages.map((page, index) => {
-      console.log(`➡️  Odpiram: ${urls[index]}`);
-      return page.goto(urls[index], {
-        waitUntil: "domcontentloaded",
-        timeout: 60000,
-      });
-    })
+    pages.map((page, index) =>
+      page.goto(urls[index], { waitUntil: "domcontentloaded", timeout: 60000 })
+    )
   );
 
   console.log(`🔄 Skrolam po straneh za nalaganje izdelkov...`);
@@ -95,11 +69,13 @@ const scrapeMercator = async () => {
               .querySelector(".lib-product-price")
               ?.innerText.trim()
               .replace(" €", "") || null;
+
           const oldPriceText =
             item
               .querySelector(".price-old.lib-product-normal-price")
               ?.innerText.trim()
               .replace(" €", "") || null;
+
           const image =
             item.querySelector(".product-image img")?.src || "Ni slike";
 
@@ -157,20 +133,26 @@ async function autoScroll(page) {
 // === SHRANJEVANJE V BAZO ===
 (async () => {
   try {
+    await client.connect();
+    console.log("✅ Povezava z MongoDB uspešna");
+
+    const db = client.db("BestPrice");
+    const collection = db.collection("mercatorproducts");
+
     const items = await scrapeMercator();
     let savedCount = 0;
 
     const parsePrice = (value) => {
       if (!value || value === "Ni cene") return null;
-      return value.replace(",", ".").trim(); // vrne string z . namesto ,
+      return value.replace(",", ".").trim();
     };
 
     for (const item of items) {
       const filter = { name: item.name };
-      const existing = await MercatorProduct.findOne(filter);
+      const existing = await collection.findOne(filter);
 
-      const price = parsePrice(item.regularPrice) ?? parsePrice(item.price); // navadna cena kot string
-      const actionPrice = item.regularPrice ? parsePrice(item.price) : null; // akcijska cena kot string
+      const price = parsePrice(item.regularPrice) ?? parsePrice(item.price);
+      const actionPrice = item.regularPrice ? parsePrice(item.price) : null;
       const currentPrice = actionPrice ?? price;
 
       const lastStoredPrice =
@@ -182,7 +164,7 @@ async function autoScroll(page) {
         currentPrice !== null && currentPrice !== lastStoredPrice;
 
       if (!existing) {
-        const newDoc = new MercatorProduct({
+        const newDoc = {
           name: item.name,
           price,
           actionPrice,
@@ -192,42 +174,37 @@ async function autoScroll(page) {
             ? [{ price: currentPrice, date: new Date() }]
             : [],
           updatedAt: new Date(),
-        });
-        await newDoc.save();
+        };
+        await collection.insertOne(newDoc);
         savedCount++;
       } else {
-        const changed =
-          existing.price !== price ||
-          existing.actionPrice !== actionPrice ||
-          existing.image !== item.image ||
-          existing.category !== item.category;
+        const updateDoc = {
+          $set: {
+            price,
+            actionPrice,
+            image: item.image,
+            category: item.category,
+            updatedAt: new Date(),
+          },
+        };
 
         if (shouldAddToHistory) {
-          existing.previousPrices.push({
-            price: currentPrice,
-            date: new Date(),
-          });
+          updateDoc.$push = {
+            previousPrices: { price: currentPrice, date: new Date() },
+          };
         }
 
-        if (changed || shouldAddToHistory) {
-          existing.price = price;
-          existing.actionPrice = actionPrice;
-          existing.image = item.image;
-          existing.category = item.category;
-          existing.updatedAt = new Date();
-          await existing.save();
-          savedCount++;
-        } else {
-          existing.updatedAt = new Date();
-          await existing.save();
-        }
+        await collection.updateOne(filter, updateDoc);
+        savedCount++;
       }
     }
 
     console.log(`✅ Shranjenih ali posodobljenih izdelkov: ${savedCount}`);
+    await client.close();
     process.exit(0);
   } catch (err) {
     console.error("❌ Napaka pri shranjevanju:", err.message);
+    await client.close();
     process.exit(1);
   }
 })();

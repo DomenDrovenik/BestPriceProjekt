@@ -1,40 +1,17 @@
 const puppeteer = require("puppeteer");
-const mongoose = require("mongoose");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
-// MongoDB povezava
-const MONGO_URI =
-  "mongodb+srv://anja:anja@cluster0.bwlvpsm.mongodb.net/BestPrice?retryWrites=true&w=majority&appName=cluster0";
-mongoose
-  .connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("✅ Povezava z MongoDB uspešna");
-  })
-  .catch((error) => {
-    console.error("❌ Napaka pri povezavi z MongoDB:", error.message);
-  });
+const uri =
+  "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
-// Mongoose shema
-const productSchema = new mongoose.Schema({
-  name: String,
-  price: String,
-  actionPrice: String,
-  image: String,
-  akcija: String,
-  category: String,
-  previousPrices: [
-    {
-      price: String,
-      date: Date,
-    },
-  ],
-  updatedAt: Date,
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+  autoSelectFamily: false,
 });
-
-const JagerProduct = mongoose.model("JagerProduct", productSchema);
 
 const URLS = {
   "https://www.trgovinejager.com/vse-za-zajtrk/": 3,
@@ -52,7 +29,7 @@ const URLS = {
   "https://www.trgovinejager.com/alkoholne-pijace-pivo-vino-likerji/": 2,
 };
 
-const scrapeJager = async () => {
+async function scrapeJager() {
   const browser = await puppeteer.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -93,7 +70,7 @@ const scrapeJager = async () => {
           if (isDiscounted) {
             const euros = item
               .querySelector(".price")
-              .childNodes[0]?.textContent.trim();
+              ?.childNodes[0]?.textContent.trim();
             const cents = item
               .querySelector(".price .right span")
               ?.innerText.trim();
@@ -144,10 +121,9 @@ const scrapeJager = async () => {
     }
   }
 
-  console.log(`\n📝 Skupno najdenih izdelkov: ${products.length}`);
   await browser.close();
   return products;
-};
+}
 
 async function gotoWithRetry(page, url, retries = 3) {
   for (let i = 0; i < retries; i++) {
@@ -155,37 +131,42 @@ async function gotoWithRetry(page, url, retries = 3) {
       console.log(`Poskus ${i + 1}: Odpiram ${url}`);
       await page.goto(url, { waitUntil: "networkidle2", timeout: 120000 });
       console.log(`✅ Uspešno odprta stran: ${url}`);
-      return true;
+      return;
     } catch (error) {
       console.log(`❌ Napaka pri odpiranju: ${error.message}`);
-      if (i === retries - 1)
+      if (i === retries - 1) {
         throw new Error(
           `Neuspešno nalaganje strani po ${retries} poskusih: ${url}`
         );
+      }
       console.log("⏳ Ponovni poskus...");
     }
   }
 }
 
-// Glavna funkcija za zagon in shranjevanje
+// MAIN EXECUTION
 (async () => {
   try {
+    await client.connect();
+    console.log("✅ Povezava z MongoDB vzpostavljena");
+
+    const db = client.db("BestPrice");
+    const collection = db.collection("jagerproducts");
+
     const items = await scrapeJager();
     let savedCount = 0;
 
     const normalizePrice = (val) => {
       if (!val || val === "Ni podatka") return null;
-      return val.toString().replace(",", ".").trim(); // string z decimalno piko
+      return val.toString().replace(",", ".").trim();
     };
 
     for (const item of items) {
-      const filter = { name: item.name };
-      const existing = await JagerProduct.findOne(filter);
-
       const price = normalizePrice(item.price);
       const actionPrice = normalizePrice(item.actionPrice);
       const currentPrice = actionPrice ?? price;
 
+      const existing = await collection.findOne({ name: item.name });
       const lastStoredPrice =
         existing?.previousPrices?.length > 0
           ? normalizePrice(
@@ -197,7 +178,7 @@ async function gotoWithRetry(page, url, retries = 3) {
         currentPrice !== null && currentPrice !== lastStoredPrice;
 
       if (!existing) {
-        const newDoc = new JagerProduct({
+        const doc = {
           name: item.name,
           price,
           actionPrice,
@@ -208,32 +189,38 @@ async function gotoWithRetry(page, url, retries = 3) {
             ? [{ price: currentPrice, date: new Date() }]
             : [],
           updatedAt: new Date(),
-        });
-        await newDoc.save();
+        };
+        await collection.insertOne(doc);
         savedCount++;
       } else {
+        const updateDoc = {
+          $set: {
+            price,
+            actionPrice,
+            akcija: item.akcija ? "true" : "false",
+            image: item.image,
+            category: item.category,
+            updatedAt: new Date(),
+          },
+        };
+
         if (shouldAddToHistory) {
-          existing.previousPrices.push({
-            price: currentPrice,
-            date: new Date(),
-          });
+          updateDoc.$push = {
+            previousPrices: { price: currentPrice, date: new Date() },
+          };
         }
 
-        existing.price = price;
-        existing.actionPrice = actionPrice;
-        existing.akcija = item.akcija ? "true" : "false";
-        existing.image = item.image;
-        existing.category = item.category;
-        existing.updatedAt = new Date();
-        await existing.save();
+        await collection.updateOne({ name: item.name }, updateDoc);
         savedCount++;
       }
     }
 
     console.log(`✅ Shranjenih ali posodobljenih izdelkov: ${savedCount}`);
+    await client.close();
     process.exit(0);
   } catch (err) {
-    console.error("❌ Napaka pri shranjevanju:", err.message);
+    console.error("❌ Napaka:", err.message);
+    await client.close();
     process.exit(1);
   }
 })();
