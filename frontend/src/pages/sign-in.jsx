@@ -77,16 +77,16 @@ export function SignIn() {
     <section className="m-8 flex gap-4">
       <div className="w-full lg:w-3/5 mt-24">
         <div className="text-center">
-          <Typography variant="h2" className="font-bold mb-4">
-            Sign In
-          </Typography>
-          <Typography
-            variant="paragraph"
-            color="blue-gray"
-            className="text-lg font-normal"
-          >
-            Enter your email and password to Sign In.
-          </Typography>
+         <Typography variant="h2" className="font-bold mb-4">
+          Prijava
+        </Typography>
+        <Typography
+          variant="paragraph"
+          color="blue-gray"
+          className="text-lg font-normal"
+        >
+          Vnesi svoj e-poštni naslov in geslo za prijavo.
+        </Typography>
         </div>
 
         <form
@@ -99,12 +99,8 @@ export function SignIn() {
             </Typography>
           )}
           <div className="mb-1 flex flex-col gap-6">
-            <Typography
-              variant="small"
-              color="blue-gray"
-              className="-mb-3 font-medium"
-            >
-              Your email
+            <Typography variant="small" color="blue-gray" className="-mb-3 font-medium">
+              E-poštni naslov
             </Typography>
             <Input
               size="lg"
@@ -114,12 +110,8 @@ export function SignIn() {
               onChange={(e) => setEmail(e.target.value)}
               className="!border-t-blue-gray-200 focus:!border-t-gray-900"
             />
-            <Typography
-              variant="small"
-              color="blue-gray"
-              className="-mb-3 font-medium"
-            >
-              Password
+            <Typography variant="small" color="blue-gray" className="-mb-3 font-medium">
+              Geslo
             </Typography>
             <Input
               type="password"
@@ -137,28 +129,25 @@ export function SignIn() {
               onChange={(e) => setSubscribe(e.target.checked)}
               label={
                 <Typography
-                  variant="small"
-                  color="gray"
-                  className="flex items-center justify-start font-medium"
-                >
-                  Subscribe me to newsletter
-                </Typography>
+                variant="small"
+                color="gray"
+                className="flex items-center justify-start font-medium"
+              >
+                Naroči me na e-novice
+              </Typography>
+
               }
               containerProps={{ className: "-ml-2.5" }}
             />
             <Typography variant="small" className="font-medium text-gray-900">
-              <a href="#">Forgot Password?</a>
+              <a href="#">Pozabljeno geslo?</a>
             </Typography>
+
           </div>
 
-          <Button
-            type="submit"
-            className="mt-6"
-            fullWidth
-            disabled={loading}
-          >
-            {loading ? "Signing In..." : "Sign In"}
-          </Button>
+         <Button type="submit" className="mt-6" fullWidth disabled={loading}>
+          {loading ? "Prijavljam..." : "Prijava"}
+        </Button>
 
           <div className="space-y-4 mt-8">
             <Button
@@ -170,7 +159,7 @@ export function SignIn() {
               disabled={loading}
             >
               {/* Google SVG here */}
-              <span>Sign in With Google</span>
+              <span>Prijava  z Googlom</span>
             </Button>
             <Button
               size="lg"
@@ -186,19 +175,20 @@ export function SignIn() {
                 width={24}
                 alt="Twitter logo"
               />
-              <span>Sign in With Twitter</span>
+              <span>Prijava s Twitterjem</span>
             </Button>
           </div>
 
           <Typography
-            variant="paragraph"
-            className="text-center text-blue-gray-500 font-medium mt-4"
-          >
-            Not registered?
-            <Link to="/sign-up" className="text-gray-900 ml-1">
-              Create account
-            </Link>
-          </Typography>
+              variant="paragraph"
+              className="text-center text-blue-gray-500 font-medium mt-4"
+            >
+              Nimaš računa?
+              <Link to="/sign-up" className="text-gray-900 ml-1">
+                Ustvari račun
+              </Link>
+            </Typography>
+
         </form>
       </div>
 
