@@ -234,7 +234,7 @@ const itemsToRender = [
           <Button
             onClick={createNewList}
             disabled={!user || !newListName.trim()}
-            className="disabled:opacity-50"
+            className="px-6 py-2 text-white font-bold rounded-lg whitespace-nowrap"
           >
             Ustvari seznam
           </Button>
@@ -244,7 +244,7 @@ const itemsToRender = [
 
       {/* Izpis podrobnosti izbranega seznama */}
       {user && currentList && (
-        <div className="max-w-3xl mx-auto px-4">
+        <div className="max-w-3xl mx-auto px-4 mt-8"> 
           <Card>
             <CardBody className="space-y-4">
               <Typography variant="h5">{currentList.name}</Typography>
@@ -307,9 +307,18 @@ const itemsToRender = [
                           onChange={() => toggleDone(item.id)}
                           label={
                             <span className={item.done ? "line-through text-gray-500" : ""}>
-                              {item.name} {item.amount ? ` – ${item.amount}` : ""}
-                              {editingItemId === item.id && <span className="ml-2 text-blue-500 italic">(urejaš)</span>}
+                              {item.name}
+                              {item.amount ? ` – ${item.amount}` : ""}
+                              {item.store ? (
+                                <span className="text-sm text-blue-gray-500 italic ml-2">
+                                  ({item.store})
+                                </span>
+                              ) : null}
+                              {editingItemId === item.id && (
+                                <span className="ml-2 text-blue-500 italic">(urejaš)</span>
+                              )}
                             </span>
+
                           }
                         />
                         <div className="flex gap-1">
