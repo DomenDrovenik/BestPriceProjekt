@@ -2,8 +2,8 @@ name: MongoDB Backup
 
 on:
   schedule:
-    - cron: '0 2 * * *'  
-  workflow_dispatch:     
+    - cron: '0 3 * * *'  
+  workflow_dispatch:    
 
 jobs:
   backup-mongo:
@@ -18,6 +18,15 @@ jobs:
       - name: Dump source MongoDB
         run: |
           mongodump --uri="${{ secrets.MONGO_SOURCE_URI }}" --out=dump/
+
+      - name: Check if dump is not empty
+        run: |
+          if [ ! -d "dump" ] || [ -z "$(ls -A dump)" ]; then
+            echo "Mongo dump failed or is empty. Skipping restore to prevent data loss."
+            exit 1
+          else
+            echo "Dump successful. Proceeding with restore."
+          fi
 
       - name: Restore to target MongoDB (overwrite)
         run: |
