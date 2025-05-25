@@ -2,32 +2,26 @@ name: MongoDB Backup
 
 on:
   schedule:
-    - cron: '0 3 * * *'  
-  workflow_dispatch:    
+    - cron: '0 2 * * *'  
+  workflow_dispatch:
 
 jobs:
-  backup-mongo:
+  sync-mongo:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up MongoDB tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mongodb-clients
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: Dump source MongoDB
-        run: |
-          mongodump --uri="${{ secrets.MONGO_SOURCE_URI }}" --out=dump/
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
 
-      - name: Check if dump is not empty
-        run: |
-          if [ ! -d "dump" ] || [ -z "$(ls -A dump)" ]; then
-            echo "Mongo dump failed or is empty. Skipping restore to prevent data loss."
-            exit 1
-          else
-            echo "Dump successful. Proceeding with restore."
-          fi
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm install
 
-      - name: Restore to target MongoDB (overwrite)
-        run: |
-          mongorestore --uri="${{ secrets.MONGO_TARGET_URI }}" --drop dump/
+      - name: Run sync script
+        working-directory: ./backend
+        run: node mongoBackup.js
