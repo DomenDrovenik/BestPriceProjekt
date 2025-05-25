@@ -282,5 +282,5 @@ function parseDateDM(s) {
   }
 
   await close();
-  console.log(`\n🎉 Wrote ${allDocs.length} items to all_catalogs.json`);
+  console.log(`\n🎉 Dokončano`);
 })();
