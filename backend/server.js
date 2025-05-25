@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const FuseModule = require("fuse.js");
+const Fuse = FuseModule.default || FuseModule;
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
@@ -242,48 +244,66 @@ app.get("/api/discountedProducts", async (req, res) => {
   }
 });
 
+async function findBestWithFuse(col, query, limit = 1) {
+  // 1) naloži (ali pred-filtriraj) nabor kandidatov
+  //    tu najprej poiščemo OR po besedah, da ne beremo cele zbirke
+  const words = query
+    .split(/\s+/)
+    .map(w => w.trim())
+    .filter(w => w.length >= 3);
+  let prelim;
+  if (words.length) {
+    const orRegex = words.map(w => ({ name: { $regex: w, $options: "i" } }));
+    prelim = await col.find({ $or: orRegex }).limit(100).toArray();
+  } else {
+    prelim = await col.find().limit(100).toArray();
+  }
+
+  if (!prelim.length) return null;
+
+  // 2) nastavimo Fuse
+  const fuse = new Fuse(prelim, {
+    keys: ["name"],
+    threshold: 0.4,           // 0–1, manj = strožja ujemanja
+    distance: 100,            // maksimalna “razdalja” v nizu
+    minMatchCharLength: 3,    // najmanjša dolžina za fuzzy komponente
+    ignoreLocation: true,     // ne kaznuje za razlike v poziciji
+  });
+
+  // 3) poiščemo najboljše rezultate
+  const results = fuse.search(query, { limit });
+  if (!results.length) return null;
+
+  // vrnemo prvi (najbolj relevanten)
+  return results[0].item;
+}
+
 app.get("/api/compare-prices", async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
-
   const { name } = req.query;
   if (!name) return res.status(400).json({ message: "Missing name" });
 
-  // 1) split the target name into significant words
-  const words = name
-    .split(/\s+/)
-    .map((w) => w.trim())
-    .filter((w) => w.length >= 3); // skip very short words
-
-  if (!words.length) {
-    return res.json([]);
-  }
-
-  // 2) build an $and array of case-insensitive regex conditions
-  const regexAnd = words.map((w) => ({
-    name: { $regex: new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") },
-  }));
-
-  // 3) store collections + friendly labels
+  // definicije trgovin
   const storeLabels = {
     tus: "Tuš",
-    merkators: "Mercator",
-    jagers: "Jager",
+    mercatorproducts: "Mercator",
+    JagerProducts: "Jager",
     lidl: "Lidl",
     hofer: "Hofer",
   };
   const cols = [
     { col: tusCollection, key: "tus" },
-    { col: merkatorCollection, key: "merkators" },
-    { col: jagerCollection, key: "jagers" },
+    { col: merkatorCollection, key: "mercatorproducts" },
+    { col: jagerCollection, key: "JagerProducts" },
     { col: lidlCollection, key: "lidl" },
     { col: hoferCollection, key: "hofer" },
   ];
 
   const results = [];
 
-  // 4) for each store, findOne a product matching **all** words
   for (const { col, key } of cols) {
-    const doc = await col.findOne({ $and: regexAnd });
+    // najprej poskusimo regex+Fuse
+    const doc = await findBestWithFuse(col, name);
     if (doc) {
       results.push({
         store: storeLabels[key] || key,
@@ -294,7 +314,7 @@ app.get("/api/compare-prices", async (req, res) => {
     }
   }
 
-  // 5) return at most one per store, sorted by price
+  // sortiramo po ceni in vrnemo
   results.sort((a, b) => a.price - b.price);
   res.json(results);
 });
