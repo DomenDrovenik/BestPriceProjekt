@@ -17,6 +17,10 @@ import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { Dialog, DialogHeader, DialogBody, DialogFooter, Select, Option } from "@material-tailwind/react";
 import toast from "react-hot-toast";
+import {
+  StarIcon,
+  ArrowLeftIcon,
+} from "@heroicons/react/24/solid";
 
 
 export function Products() {
@@ -413,6 +417,17 @@ useEffect(() => {
                     {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
                   </>
                 )}
+                
+                {p.comments && p.comments.length > 0 && (
+  <div className="flex justify-end">
+    <span className="text-yellow-400 flex items-center gap-1">
+      {(p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length).toFixed(1)}
+      <StarIcon className="h-6 w-6 text-yellow-400" />
+    </span>
+  </div>
+)}
+                  
+                  
               </Typography>
 
              <div className="mb-2">

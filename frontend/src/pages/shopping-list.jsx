@@ -11,7 +11,7 @@ import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "firebas
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import { Dialog, DialogHeader, DialogBody, DialogFooter, Textarea } from "@material-tailwind/react";
-import html2pdf from "html2pdf.js";
+// import html2pdf from "html2pdf.js";
 
 
 export function ShoppingList() {
