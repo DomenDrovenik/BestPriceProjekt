@@ -300,47 +300,59 @@ app.get("/api/compare-prices", async (req, res) => {
 });
 
 app.post("/api/products/:id/comments", async (req, res) => {
-  const id = req.params.id;
-  const objectId = new ObjectId(id);
-  const newComment = req.body;
-
-  const collections = [
-    tusCollection,
-    merkatorCollection,
-    jagerCollection,
-    lidlCollection,
-    hoferCollection,
-  ];
-
   try {
+    const id = req.params.id;
+    const objectId = new ObjectId(id);
+    const { userId, user, rating, text, date } = req.body;
+
+    if (!userId || !rating) {
+      return res
+        .status(400)
+        .json({ message: "Manjkajoči podatki: userId ali rating" });
+    }
+
+    const comment = { userId, user, rating, text, date };
+
+    const collections = [
+      tusCollection,
+      merkatorCollection,
+      jagerCollection,
+      lidlCollection,
+      hoferCollection,
+    ];
+
     for (const collection of collections) {
       const product = await collection.findOne({ _id: objectId });
+
       if (product) {
-        const updatedComments = product.comments
-          ? [...product.comments, newComment]
-          : [newComment];
+        const existingComment = (product.comments || []).find(
+          (c) => c.userId === userId
+        );
+        if (existingComment) {
+          return res
+            .status(409)
+            .json({ message: "Uporabnik je že ocenil ta izdelek." });
+        }
 
         await collection.updateOne(
           { _id: objectId },
-          { $set: { comments: updatedComments } }
+          { $push: { comments: comment } }
         );
-
-        return res
-          .status(200)
-          .json({ message: "Komentar dodan", comments: updatedComments });
+        return res.status(201).json({ message: "Komentar/ocena shranjena." });
       }
     }
 
-    res.status(404).json({ message: "Izdelek ni bil najden" });
+    res.status(404).json({ message: "Izdelek ni najden." });
   } catch (error) {
-    console.error("Napaka pri dodajanju komentarja:", error);
-    res.status(500).json({ message: "Napaka na strežniku" });
+    console.error("Napaka pri shranjevanju komentarja:", error);
+    res.status(500).json({ message: "Napaka na strežniku." });
   }
 });
 
-app.get("/api/products/:id/comments", async (req, res) => {
+app.get("/api/products/:id/comments/", async (req, res) => {
   try {
     const id = req.params.id;
+    // const uid = req.params.uid;
     const objectId = new ObjectId(id);
 
     const collections = [
@@ -363,6 +375,75 @@ app.get("/api/products/:id/comments", async (req, res) => {
     res.status(200).json([]);
   } catch (error) {
     console.log("Error: " + error);
+  }
+});
+
+app.put("/api/products/:id/comments/:userId", async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+    const { rating, text } = req.body;
+    const objectId = new ObjectId(id);
+
+    const collections = [
+      tusCollection,
+      merkatorCollection,
+      jagerCollection,
+      lidlCollection,
+      hoferCollection,
+    ];
+
+    for (const collection of collections) {
+      const result = await collection.updateOne(
+        { _id: objectId, "comments.userId": userId },
+        {
+          $set: {
+            "comments.$.rating": rating,
+            "comments.$.text": text,
+            "comments.$.date": new Date().toISOString(),
+          },
+        }
+      );
+
+      if (result.modifiedCount > 0) {
+        return res.status(200).json({ message: "Komentar posodobljen." });
+      }
+    }
+
+    res.status(404).json({ message: "Komentar ni bil najden." });
+  } catch (err) {
+    console.error("Napaka pri posodabljanju komentarja:", err);
+    res.status(500).json({ message: "Napaka na strežniku." });
+  }
+});
+
+app.delete("/api/products/:id/comments/:userId", async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+    const objectId = new ObjectId(id);
+
+    const collections = [
+      tusCollection,
+      merkatorCollection,
+      jagerCollection,
+      lidlCollection,
+      hoferCollection,
+    ];
+
+    for (const collection of collections) {
+      const result = await collection.updateOne(
+        { _id: objectId },
+        { $pull: { comments: { userId } } }
+      );
+
+      if (result.modifiedCount > 0) {
+        return res.status(200).json({ message: "Komentar izbrisan." });
+      }
+    }
+
+    res.status(404).json({ message: "Komentar ni bil najden." });
+  } catch (err) {
+    console.error("Napaka pri brisanju komentarja:", err);
+    res.status(500).json({ message: "Napaka na strežniku." });
   }
 });
 

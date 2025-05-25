@@ -22,8 +22,11 @@ import {
     Tooltip,
   } from "recharts";
 import { PageTitle, PriceComparison } from "@/widgets/layout";
-import { onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { auth } from "../firebase";
+import { firestore } from "../firebase";
+import { UserIcon } from "@heroicons/react/24/outline";
 
 export function ProductDetails() {
     const { id } = useParams();
@@ -34,16 +37,43 @@ export function ProductDetails() {
     const [newComment, setNewComment] = useState("");
     const [newRating, setNewRating] = useState(0);
     const [currentUser, setCurrentUser] = useState(null);
+    const [currentUserData, setCurrentUserData] = useState(null);
+    const [hasRated, setHasRated] = useState(false);
+    const [editing, setEditing] = useState(null); // userId, ki ga urejamo
+    const [editCommentText, setEditCommentText] = useState("");
+    const [editRating, setEditRating] = useState(0);
 
+    useEffect(() => {
+      if (currentUser && comments.length > 0) {
+        const alreadyRated = comments.some(c => c.userId === currentUser.uid);
+        setHasRated(alreadyRated);
+      }
+    }, [currentUser, comments]);
     
 
 useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    setCurrentUser(user);
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      setCurrentUser(user); 
+
+      try {
+        const ref = doc(firestore, "users", user.uid);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+           const data = snap.data();
+          // console.log("Uporabniški podatki iz Firestore:", data);
+          setCurrentUserData(data); 
+        }
+        console.log(currentUserData);
+      } catch (error) {
+        console.error("Napaka pri branju podatkov uporabnika:", error);
+      }
+    }
   });
 
-  return () => unsubscribe(); // odjava listenerja ko se komponenta uniči
+  return unsubscribe;
 }, []);
+
   
     useEffect(() => {
       const load = async () => {
@@ -94,35 +124,84 @@ useEffect(() => {
     );
   }
   const handleCommentSubmit = async () => {
-  if (!currentUser || newRating === 0 || !newComment.trim()) return;
+  if (!currentUser || newRating === 0 || hasRated) return;
 
   const comment = {
     userId: currentUser.uid,
     user: {
-      name: currentUser.name || "Neznan uporabnik",
-      surname: currentUser.surname || "",
-      avatar: currentUser.photoURL || "",
+      name: currentUserData?.name || "Neznan uporabnik",
+      surname: currentUserData?.surname || "",
+      avatar: currentUser?.photoURL || "",
     },
     rating: newRating,
-    text: newComment,
+    text: newComment.trim(), 
     date: new Date().toISOString(),
   };
 
   try {
-    await fetch(`http://localhost:3000/api/products/${id}/comments`, {
+    const res = await fetch(`http://localhost:3000/api/products/${id}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(comment),
     });
 
-    
+    if (res.status === 409) {
+      alert("Že si ocenil ta izdelek.");
+      return;
+    }
+
+    setComments([...comments, comment]);
     setNewComment("");
     setNewRating(0);
-    setComments([...comments, comment]);
+    setHasRated(true);
   } catch (err) {
     console.error("Napaka pri pošiljanju komentarja:", err);
   }
 };
+
+const handleEditSubmit = async (userId) => {
+  try {
+    const res = await fetch(`http://localhost:3000/api/products/${id}/comments/${userId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rating: editRating,
+        text: editCommentText,
+      }),
+    });
+
+    if (res.ok) {
+      const updated = comments.map(c =>
+        c.userId === userId ? { ...c, rating: editRating, text: editCommentText, date: new Date().toISOString() } : c
+      );
+      setComments(updated);
+      setEditing(null);
+    }
+  } catch (err) {
+    console.error("Napaka pri urejanju komentarja:", err);
+  }
+};
+
+const handleDeleteComment = async (userId) => {
+  if (!window.confirm("Ali si prepričan, da želiš izbrisati komentar?")) return;
+
+  try {
+    const res = await fetch(`http://localhost:3000/api/products/${id}/comments/${userId}`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      setComments(comments.filter(c => c.userId !== userId));
+      setHasRated(false);
+    }
+  } catch (err) {
+    console.error("Napaka pri brisanju komentarja:", err);
+  }
+};
+
+
+
+
 
   return (
     <>
@@ -235,36 +314,84 @@ useEffect(() => {
     {comments.length === 0 && (
       <Typography className="text-gray-500 text-center">Ni komentarjev.</Typography>
     )}
-    {comments.map(({ id: cid, user, rating, text, date }) => (
-      <Card key={cid} className="p-4">
-        <div className="flex items-center mb-2">
-          <Avatar
-            src={user.avatar}
-            alt={user.name}
-            variant="circular"
-            className="mr-3 h-10 w-10"
+    {comments.map((comment) => {
+  const isUser = currentUser?.uid === comment.userId;
+
+  return (
+    <Card key={comment.userId} className="p-4">
+      
+      <div className="flex items-center mb-2">
+        {comment.user.avatar ? (
+          <Avatar src={comment.user.avatar} className="mr-3 h-10 w-10" />
+        ) : (
+          <UserIcon className="w-10 h-10 text-black mr-3" />
+        )}
+        <div>
+          <Typography variant="h6">{comment.user.name} {comment.user.surname}</Typography>
+          <Typography variant="small" className="text-gray-500">
+            {new Date(comment.date).toLocaleDateString("sl-SI")}
+          </Typography>
+        </div>
+      </div>
+
+      {/* Ocena */}
+      <div className="flex items-center mb-2">
+        {[...Array(5)].map((_, i) => (
+          <StarIcon
+            key={i}
+            className={`h-5 w-5 ${i < comment.rating ? "text-yellow-400" : "text-gray-300"}`}
           />
-          <div>
-            <Typography variant="h6">{user.name}</Typography>
-            <Typography variant="small" className="text-gray-500">
-              {new Date(date).toLocaleDateString("sl-SI")}
-            </Typography>
+        ))}
+      </div>
+
+      
+      {editing === comment.userId ? (
+        <>
+          <textarea
+            className="border rounded-md p-2 w-full resize-none mb-2"
+            rows={3}
+            value={editCommentText}
+            onChange={(e) => setEditCommentText(e.target.value)}
+          />
+          <div className="flex gap-1 mb-2">
+            {[...Array(5)].map((_, i) => (
+              <StarIcon
+                key={i}
+                onClick={() => setEditRating(i + 1)}
+                className={`h-6 w-6 cursor-pointer ${i < editRating ? "text-yellow-400" : "text-gray-300"}`}
+              />
+            ))}
           </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => handleEditSubmit(comment.userId)}>Shrani</Button>
+            <Button size="sm" variant="outlined" onClick={() => setEditing(null)}>Prekliči</Button>
+          </div>
+        </>
+      ) : (
+        <Typography>{comment.text || <i>Brez komentarja</i>}</Typography>
+      )}
+
+      
+      {isUser && editing !== comment.userId && (
+        <div className="mt-2 flex gap-2">
+          <Button size="sm" onClick={() => {
+            setEditing(comment.userId);
+            setEditCommentText(comment.text || "");
+            setEditRating(comment.rating);
+          }}>
+            Uredi
+          </Button>
+          <Button size="sm" variant="outlined" color="red" onClick={() => handleDeleteComment(comment.userId)}>
+            Zbriši
+          </Button>
         </div>
-        <div className="flex items-center mb-2">
-          {[...Array(5)].map((_, i) => (
-            <StarIcon
-              key={i}
-              className={`h-5 w-5 ${i < rating ? "text-yellow-400" : "text-gray-300"}`}
-            />
-          ))}
-        </div>
-        <Typography>{text}</Typography>
-      </Card>
-    ))}
+      )}
+    </Card>
+  );
+})}
   </div>
 
-  {/* Vnos novega komentarja */}
+  
   <div className="mt-8">
     <Typography variant="h5" className="mb-3 text-center">
       Dodaj komentar
@@ -293,14 +420,14 @@ useEffect(() => {
 
       <button
         className={`px-4 py-2 rounded-md text-white font-semibold transition ${
-          currentUser
-            ? "bg-blue-600 hover:bg-blue-700"
-            : "bg-gray-400 cursor-not-allowed"
+          !currentUser || !currentUserData || newRating === 0 || hasRated
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
         }`}
         onClick={handleCommentSubmit}
-        disabled={!currentUser || newRating === 0 || newComment.trim() === ""}
+        disabled={!currentUser || !currentUserData || newRating === 0 || hasRated}
       >
-        Objavi komentar
+        {hasRated ? "Že si ocenil" : "Objavi oceno"}
       </button>
     </div>
   </div>
