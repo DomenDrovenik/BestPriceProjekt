@@ -2,7 +2,7 @@ name: Daily Scraper
 
 on:
   schedule:
-    - cron: '0 1 * * *' # vsak dan ob 3:00 
+    - cron: "0 2 * * *" # vsak dan ob 3:00
   workflow_dispatch:
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18.15.0'
+          node-version: "18.15.0"
 
       - name: Install dependencies
         run: cd backend && npm install

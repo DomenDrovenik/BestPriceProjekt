@@ -1,0 +1,74 @@
+const { MongoClient, ServerApiVersion } = require("mongodb");
+
+async function syncDatabases(sourceUri, targetUri) {
+  const sourceClient = new MongoClient(sourceUri, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: false,
+      deprecationErrors: true,
+    },
+    autoSelectFamily: false,
+  });
+  const targetClient = new MongoClient(targetUri, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: false,
+      deprecationErrors: true,
+    },
+    autoSelectFamily: false,
+  });
+
+  try {
+    await sourceClient.connect();
+    await targetClient.connect();
+
+    const sourceDb = sourceClient.db("BestPrice");
+    const targetDb = targetClient.db("BestPrice");
+
+    const collections = await sourceDb.listCollections().toArray();
+
+    for (const collInfo of collections) {
+      const name = collInfo.name;
+      console.log(`Syncing collection: ${name}`);
+
+      const sourceColl = sourceDb.collection(name);
+      const targetColl = targetDb.collection(name);
+
+      await targetColl.deleteMany({});
+
+      const cursor = sourceColl.find();
+
+      const batchSize = 1000;
+      let batch = [];
+
+      while (await cursor.hasNext()) {
+        const doc = await cursor.next();
+        batch.push(doc);
+
+        if (batch.length === batchSize) {
+          await targetColl.insertMany(batch);
+          batch = [];
+        }
+      }
+
+      if (batch.length > 0) {
+        await targetColl.insertMany(batch);
+      }
+
+      console.log(`Collection ${name} synced successfully.`);
+    }
+
+    console.log("All collections synced!");
+  } catch (err) {
+    console.error("Error syncing databases:", err);
+  } finally {
+    await sourceClient.close();
+    await targetClient.close();
+  }
+}
+
+const sourceUri =
+  "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/";
+const targetUri = "mongodb+srv://domen:domen@cluster0.6htyv94.mongodb.net/";
+
+syncDatabases(sourceUri, targetUri);

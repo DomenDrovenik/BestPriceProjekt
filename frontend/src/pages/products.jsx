@@ -33,6 +33,7 @@ export function Products() {
   const [selectedStores, setSelectedStores] = useState([]);
   const itemsPerPage = 24;
   const [onlyDiscounted, setOnlyDiscounted] = useState(false);
+  const [sortBy, setSortBy] = useState("");
 
  const storeMap = {
   merkator: "Mercator",
@@ -339,6 +340,14 @@ useEffect(() => {
                   onChange={() => setOnlyDiscounted(!onlyDiscounted)}
                 />
               </div>
+              {/*<div className="mt-4">
+               <Typography variant="small" className="block mb-2 font-medium">Razvrsti po oceni</Typography>
+              <Select label="Izberi možnost" value={sortBy} onChange={(val) => setSortBy(val)}>
+                <Option value="">Brez razvrstitve</Option>
+                <Option value="rating-desc">Najvišja ocena</Option>
+                <Option value="rating-asc">Najnižja ocena</Option>
+              </Select>
+            </div> */}
 
              <div>
               <Typography variant="small" className="block mb-2 font-medium">Razpon cen (€)</Typography>
