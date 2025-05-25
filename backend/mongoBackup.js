@@ -9,6 +9,7 @@ async function syncDatabases(sourceUri, targetUri) {
     },
     autoSelectFamily: false,
   });
+
   const targetClient = new MongoClient(targetUri, {
     serverApi: {
       version: ServerApiVersion.v1,
@@ -29,15 +30,23 @@ async function syncDatabases(sourceUri, targetUri) {
 
     for (const collInfo of collections) {
       const name = collInfo.name;
-      console.log(`Syncing collection: ${name}`);
+      console.log(`Checking collection: ${name}`);
 
       const sourceColl = sourceDb.collection(name);
       const targetColl = targetDb.collection(name);
 
+      const count = await sourceColl.countDocuments();
+
+      if (count === 0) {
+        console.log(`Skipping collection ${name} — source is empty.`);
+        continue;
+      }
+
+      console.log(`Syncing collection: ${name} (${count} documents)`);
+
       await targetColl.deleteMany({});
 
       const cursor = sourceColl.find();
-
       const batchSize = 1000;
       let batch = [];
 
@@ -61,6 +70,7 @@ async function syncDatabases(sourceUri, targetUri) {
     console.log("All collections synced!");
   } catch (err) {
     console.error("Error syncing databases:", err);
+    process.exit(1);
   } finally {
     await sourceClient.close();
     await targetClient.close();
