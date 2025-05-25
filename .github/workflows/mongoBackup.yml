@@ -19,9 +19,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        working-directory: ./backend
-        run: npm install
+        run: cd backend && npm install
 
-      - name: Run sync script
-        working-directory: ./backend
-        run: node mongoBackup.js
+      - name: Run backup script
+        run: cd backend && node mongoBackup.js
