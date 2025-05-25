@@ -9,6 +9,10 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
+import { Dialog, DialogHeader, DialogBody, DialogFooter, Textarea } from "@material-tailwind/react";
+import html2pdf from "html2pdf.js";
+
 
 export function ShoppingList() {
   const [user, setUser] = useState(null);
@@ -147,6 +151,111 @@ const itemsToRender = [
   ...items.filter(i => i.done),
 ];
 
+const formatListAsText = () => {
+  if (!currentList) return "";
+
+  const lines = [`Seznam: ${currentList.name}`, ""];
+
+  const unchecked = currentList.items.filter(i => !i.done);
+  const checked = currentList.items.filter(i => i.done);
+
+  if (unchecked.length) {
+    lines.push("Potrebno kupiti:");
+    unchecked.forEach((item, i) => {
+      lines.push(`${i + 1}. ${item.name}${item.amount ? ` – ${item.amount}` : ""}${item.store ? ` (${item.store})` : ""}`);
+    });
+    lines.push("");
+  }
+
+  if (checked.length) {
+    lines.push("Opravljeno:");
+    checked.forEach((item, i) => {
+      lines.push(`${i + 1}. ${item.name}${item.amount ? ` – ${item.amount}` : ""}${item.store ? ` (${item.store})` : ""}`);
+    });
+  }
+
+  return lines.join("\n");
+};
+
+
+const copyListToClipboard = () => {
+  const text = formatListAsText();
+  navigator.clipboard.writeText(text).then(() => {
+    alert("Seznam je bil kopiran v odložišče!");
+  }).catch(() => {
+    alert("Napaka pri kopiranju.");
+  });
+};
+
+const downloadAsTxt = () => {
+  const text = formatListAsText();
+  const blob = new Blob([text], { type: "text/plain" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${currentList.name || "seznam"}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const downloadAsPdf = () => {
+  const text = formatListAsText();
+  const pdf = new jsPDF();
+  const lines = pdf.splitTextToSize(text, 180);
+  pdf.text(lines, 10, 10);
+  pdf.save(`${currentList.name || "seznam"}.pdf`);
+};
+
+const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+const [pdfText, setPdfText] = useState("");
+
+const openPdfPreview = () => {
+  const text = formatListAsText();
+  setPdfText(text);
+  setPdfPreviewOpen(true);
+};
+
+const downloadEditedPdf = () => {
+  const pdf = new jsPDF();
+  const lines = pdf.splitTextToSize(pdfText, 180);
+
+  pdf.setFont("Helvetica", "");
+  pdf.setFontSize(12);
+  pdf.setTextColor(40);
+
+  pdf.text(`Nakupovalni seznam: ${currentList.name}`, 10, 15);
+  pdf.setDrawColor(200);
+  pdf.setLineWidth(0.5);
+  pdf.line(10, 17, 200, 17);
+
+  pdf.text(lines, 10, 25);
+  pdf.save(`${currentList.name || "seznam"}.pdf`);
+  setPdfPreviewOpen(false);
+};
+
+const itemsGroupedByStore = () => {
+  if (!currentList) return {};
+
+  const groups = {
+    __done__: [],
+    __noStore__: {},
+  };
+
+  currentList.items.forEach((item) => {
+    if (item.done) {
+      groups.__done__.push(item);
+    } else if (item.store) {
+      if (!groups[item.store]) groups[item.store] = [];
+      groups[item.store].push(item);
+    } else {
+      if (!groups.__noStore__["Drugo"]) groups.__noStore__["Drugo"] = [];
+      groups.__noStore__["Drugo"].push(item);
+    }
+  });
+
+  return groups;
+};
+
 
   return (
     <>
@@ -234,7 +343,7 @@ const itemsToRender = [
           <Button
             onClick={createNewList}
             disabled={!user || !newListName.trim()}
-            className="disabled:opacity-50"
+            className="px-6 py-2 text-white font-bold rounded-lg whitespace-nowrap"
           >
             Ustvari seznam
           </Button>
@@ -244,10 +353,22 @@ const itemsToRender = [
 
       {/* Izpis podrobnosti izbranega seznama */}
       {user && currentList && (
-        <div className="max-w-3xl mx-auto px-4">
+        <div className="max-w-3xl mx-auto px-4 mt-8"> 
           <Card>
             <CardBody className="space-y-4">
               <Typography variant="h5">{currentList.name}</Typography>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" color="blue" onClick={copyListToClipboard}>
+                  Kopiraj
+                </Button>
+                <Button size="sm" color="green" onClick={downloadAsTxt}>
+                  Prenesi TXT
+                </Button>
+                <Button size="sm" color="red" onClick={openPdfPreview}>
+                  Predogled & izvoz PDF
+                </Button>
+
+              </div>
 
               {/* Vnos izdelka */}
               <div className="flex flex-col sm:flex-row gap-2 items-center w-full">
@@ -290,49 +411,168 @@ const itemsToRender = [
                 </div>
               </div>
 
-              {/* Seznam izdelkov */}
-              {currentList.items.length === 0 ? (
-                <Typography color="gray" className="text-center italic">
-                  Seznam je prazen.
-                </Typography>
-              ) : (
-                <ul className="space-y-2">
-                  {itemsToRender.map((item, idx) =>
-                    item.separator ? (
-                      <li key={`sep-${idx}`} className="text-center text-gray-500 pt-2 border-t">Opravljeno</li>
-                    ) : (
-                      <li key={item.id} className="flex justify-between items-center">
-                        <Checkbox
-                          checked={item.done}
-                          onChange={() => toggleDone(item.id)}
-                          label={
-                            <span className={item.done ? "line-through text-gray-500" : ""}>
-                              {item.name} {item.amount ? ` – ${item.amount}` : ""}
-                              {editingItemId === item.id && <span className="ml-2 text-blue-500 italic">(urejaš)</span>}
-                            </span>
-                          }
-                        />
-                        <div className="flex gap-1">
-                          <IconButton size="sm" color="blue" onClick={() => {
-                            setNewItemName(item.name);
-                            setNewItemAmount(item.amount);
-                            setEditingItemId(item.id);
-                          }}>
-                            <PencilIcon className="h-4 w-4" />
-                          </IconButton>
-                          <IconButton size="sm" color="red" onClick={() => removeItem(item.id)}>
-                            <TrashIcon className="h-4 w-4" />
-                          </IconButton>
-                        </div>
-                      </li>
-                    )
-                  )}
-                </ul>
-              )}
+             {/* Seznam izdelkov */}
+            {/* Seznam izdelkov */}
+{currentList.items.length === 0 ? (
+  <Typography color="gray" className="text-center italic">
+    Seznam je prazen.
+  </Typography>
+) : (
+  <>
+    {/* Trgovine (abecedno) */}
+    {Object.keys(itemsGroupedByStore())
+      .filter(key => key !== "__done__" && key !== "__noStore__")
+      .sort()
+      .map(store => (
+        <div key={store} className="mb-4">
+          <Typography variant="small" className="font-bold text-gray-700 mb-1 border-b pb-1">
+            {store}
+          </Typography>
+          <ul className="space-y-2">
+            {itemsGroupedByStore()[store].map((item) => (
+              <li key={item.id} className="flex justify-between items-center">
+                <Checkbox
+                  checked={item.done}
+                  onChange={() => toggleDone(item.id)}
+                  label={
+                    <span>
+                      {item.name}
+                      {item.amount ? ` – ${item.amount}` : ""}
+                      {editingItemId === item.id && (
+                        <span className="ml-2 text-blue-500 italic">(urejaš)</span>
+                      )}
+                    </span>
+                  }
+                />
+                <div className="flex gap-1">
+                  <IconButton size="sm" color="blue" onClick={() => {
+                    setNewItemName(item.name);
+                    setNewItemAmount(item.amount);
+                    setEditingItemId(item.id);
+                  }}>
+                    <PencilIcon className="h-4 w-4" />
+                  </IconButton>
+                  <IconButton size="sm" color="red" onClick={() => removeItem(item.id)}>
+                    <TrashIcon className="h-4 w-4" />
+                  </IconButton>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+
+    {/* Drugo (artikli brez trgovine) */}
+    {itemsGroupedByStore().__noStore__["Drugo"]?.length > 0 && (
+      <div className="mb-4">
+        <Typography variant="small" className="font-bold text-gray-700 mb-1 border-b pb-1">
+          Drugo
+        </Typography>
+        <ul className="space-y-2">
+          {itemsGroupedByStore().__noStore__["Drugo"].map((item) => (
+            <li key={item.id} className="flex justify-between items-center">
+              <Checkbox
+                checked={item.done}
+                onChange={() => toggleDone(item.id)}
+                label={
+                  <span>
+                    {item.name}
+                    {item.amount ? ` – ${item.amount}` : ""}
+                    {editingItemId === item.id && (
+                      <span className="ml-2 text-blue-500 italic">(urejaš)</span>
+                    )}
+                  </span>
+                }
+              />
+              <div className="flex gap-1">
+                <IconButton size="sm" color="blue" onClick={() => {
+                  setNewItemName(item.name);
+                  setNewItemAmount(item.amount);
+                  setEditingItemId(item.id);
+                }}>
+                  <PencilIcon className="h-4 w-4" />
+                </IconButton>
+                <IconButton size="sm" color="red" onClick={() => removeItem(item.id)}>
+                  <TrashIcon className="h-4 w-4" />
+                </IconButton>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {/* Opravljeno */}
+    {itemsGroupedByStore().__done__.length > 0 && (
+      <div className="mt-6 pt-4 border-t">
+        <Typography variant="small" className="font-bold text-gray-700 mb-1">
+          Opravljeno
+        </Typography>
+        <ul className="space-y-2">
+          {itemsGroupedByStore().__done__.map((item) => (
+            <li key={item.id} className="flex justify-between items-center">
+              <Checkbox
+                checked={item.done}
+                onChange={() => toggleDone(item.id)}
+                label={
+                  <span className="line-through text-gray-500">
+                    {item.name}
+                    {item.amount ? ` – ${item.amount}` : ""}
+                    {item.store && (
+                      <span className="text-sm italic ml-2">({item.store})</span>
+                    )}
+                    {editingItemId === item.id && (
+                      <span className="ml-2 text-blue-500 italic">(urejaš)</span>
+                    )}
+                  </span>
+                }
+              />
+              <div className="flex gap-1">
+                <IconButton size="sm" color="blue" onClick={() => {
+                  setNewItemName(item.name);
+                  setNewItemAmount(item.amount);
+                  setEditingItemId(item.id);
+                }}>
+                  <PencilIcon className="h-4 w-4" />
+                </IconButton>
+                <IconButton size="sm" color="red" onClick={() => removeItem(item.id)}>
+                  <TrashIcon className="h-4 w-4" />
+                </IconButton>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </>
+)}
+
+
             </CardBody>
           </Card>
         </div>
+    
       )}
+      <Dialog open={pdfPreviewOpen} handler={() => setPdfPreviewOpen(false)}>
+  <DialogHeader>Predogled PDF seznama</DialogHeader>
+  <DialogBody>
+    <Textarea
+      rows={10}
+      value={pdfText}
+      onChange={(e) => setPdfText(e.target.value)}
+      className="font-mono"
+    />
+  </DialogBody>
+  <DialogFooter>
+    <Button variant="text" color="gray" onClick={() => setPdfPreviewOpen(false)}>
+      Prekliči
+    </Button>
+    <Button color="red" onClick={downloadEditedPdf}>
+      Prenesi PDF
+    </Button>
+  </DialogFooter>
+</Dialog>
+
       <div className="h-20" />
     </>
   );

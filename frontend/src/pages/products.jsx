@@ -12,6 +12,12 @@ import { PageTitle } from "@/widgets/layout";
 import { Link as RouterLink } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { categories } from "@/data/categories";
+import { auth, firestore } from "../firebase";
+import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { Dialog, DialogHeader, DialogBody, DialogFooter, Select, Option } from "@material-tailwind/react";
+import toast from "react-hot-toast";
+
 
 export function Products() {
   const [products, setProducts] = useState([]);
@@ -24,11 +30,15 @@ export function Products() {
   const itemsPerPage = 24;
   const [onlyDiscounted, setOnlyDiscounted] = useState(false);
 
-  const storeMap = {
-    merkator: "Mercator",
-    jager: "Jager",
-    tus: "Tuš"
-  };
+ const storeMap = {
+  merkator: "Mercator",
+  jager: "Jager",
+  tus: "Tuš",
+  lidl: "Lidl",
+  hofer: "Hofer"
+};
+
+const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   const [searchParams] = useSearchParams();
 
@@ -42,78 +52,54 @@ export function Products() {
 
   // Ob zagonu - naloži vse izdelke
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/api/all-products");
-        const raw = await res.json();
-        const data = raw.map((p) => ({
-          ...p,
-          _id: typeof p._id === "object" 
-            ? p._id.$oid || p._id.toString()    // EJSON or native ObjectId
-            : String(p._id),
-        }));
-        // heuristika: iz slike ugotovi trgovino
-        const enriched = data.map((p) => {
-          const source = p.image?.toLowerCase() || "";
-          const store = Object.entries(storeMap).find(([key]) =>
-            source.includes(key)
-          )?.[1] || "Trgovina";
-          return { ...p, store };
-        });
-        setProducts(enriched);
-      } catch (error) {
-        console.error("Napaka pri pridobivanju podatkov:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const fetchInitial = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/api/all-products");
+      const data = await res.json();
+      const enriched = data.map((p) => {
+        const source = p.image?.toLowerCase() || "";
+        const store = Object.entries(storeMap).find(([key]) =>
+          source.includes(key)
+        )?.[1] || "Trgovina";
+        return { ...p, store };
+      });
+      setProducts(enriched);
+      setInitialLoadDone(true); // 🔁 zabeležimo prvi load
+    } catch (error) {
+      console.error("Napaka pri pridobivanju vseh izdelkov:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!initialLoadDone) fetchInitial();
+}, [initialLoadDone]);
 
   // Ob spremembi trgovcev - pošlji nove API klice
-  useEffect(() => {
-    const fetchSelectedStores = async () => {
-      if (selectedStores.length === 0) {
-        // če ni izbranih, naloži all-products
-        setLoading(true);
-        try {
-          const res = await fetch("http://localhost:3000/api/all-products");
+useEffect(() => {
+  const fetchSelectedStores = async () => {
+    if (selectedStores.length === 0) return; // ⛔ nič ne naloži, če ni izbranih
+
+    setLoading(true);
+    try {
+      const allData = await Promise.all(
+        selectedStores.map(async (storeKey) => {
+          const res = await fetch(`http://localhost:3000/${storeKey}`);
           const data = await res.json();
-          const enriched = data.map((p) => {
-            const source = p.image?.toLowerCase() || "";
-            const store = Object.entries(storeMap).find(([key]) =>
-              source.includes(key)
-            )?.[1] || "Trgovina";
-            return { ...p, store };
-          });
-          setProducts(enriched);
-        } catch (error) {
-          console.error("Napaka pri pridobivanju vseh izdelkov:", error);
-        } finally {
-          setLoading(false);
-        }
-        return;
-      }
+          return data.map((p) => ({ ...p, store: storeMap[storeKey] }));
+        })
+      );
+      setProducts(allData.flat());
+    } catch (error) {
+      console.error("Napaka pri pridobivanju trgovskih izdelkov:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      setLoading(true);
-      try {
-        const allData = await Promise.all(
-          selectedStores.map(async (storeKey) => {
-            const res = await fetch(`http://localhost:3000/${storeKey}`);
-            const data = await res.json();
-            return data.map((p) => ({ ...p, store: storeMap[storeKey] }));
-          })
-        );
-        setProducts(allData.flat());
-      } catch (error) {
-        console.error("Napaka pri pridobivanju trgovskih izdelkov:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  fetchSelectedStores();
+}, [selectedStores]);
 
-    fetchSelectedStores();
-  }, [selectedStores]);
 
   useEffect(() => {
   const initialCat = searchParams.get("category");
@@ -225,6 +211,74 @@ export function Products() {
     );
   };
 
+  const [user, setUser] = useState(null);
+    useEffect(() => {
+      const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+        setUser(firebaseUser);
+      });
+      return () => unsubscribe();
+    }, []);
+
+      // Funkcija za pridobitev seznamov uporabnika
+    const fetchUserLists = async (uid) => {
+      const snapshot = await getDocs(collection(firestore, "users", uid, "lists"));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    };
+
+    // Dodaj izdelek v izbran seznam
+    const addItemToList = async (userId, listId, product) => {
+      const ref = doc(firestore, "users", userId, "lists", listId);
+      const listSnap = await getDocs(collection(firestore, "users", userId, "lists"));
+      const targetList = listSnap.docs.find(doc => doc.id === listId);
+      if (!targetList) return;
+
+      const listData = targetList.data();
+      const existingItems = listData.items || [];
+
+      const itemExists = existingItems.some(item => item.name === product.name);
+     if (itemExists) {
+        toast.error("Ta izdelek je že na seznamu.");
+        return;
+      }
+
+      const newItem = {
+          id: Date.now(),
+          name: product.name,
+          amount: "",
+          done: false,
+          store: product.store || "", // dodano!
+        };
+
+      const updatedItems = [...existingItems, newItem];
+      await updateDoc(ref, { items: updatedItems });
+      toast.success("Izdelek je bil uspešno dodan!");
+    };
+
+    const [showDialog, setShowDialog] = useState(false);
+    const [userLists, setUserLists] = useState([]);
+    const [selectedListId, setSelectedListId] = useState("");
+    const [selectedProduct, setSelectedProduct] = useState(null);
+
+
+    const openDialog = async (product) => {
+  const user = auth.currentUser;
+  if (!user) {
+    toast.error("Za uporabo te funkcije se moraš prijaviti.");
+    return;
+  }
+
+  const lists = await fetchUserLists(user.uid);
+  if (lists.length === 0) {
+  	  toast("Nimaš še ustvarjenih seznamov.", { icon: "ℹ️" });
+    return;
+  }
+
+  setUserLists(lists);
+  setSelectedProduct(product);
+  setSelectedListId(lists[0].id); // privzeto prvi seznam
+  setShowDialog(true);
+};
+
   return (
     <>
       <div className="relative flex h-[50vh] content-center items-center justify-center pt-16 pb-16">
@@ -282,80 +336,159 @@ export function Products() {
                 />
               </div>
 
-              <div>
-                <Typography variant="small" className="block mb-2 font-medium">Razpon cen (€)</Typography>
-                <div className="flex items-center gap-2">
-                  <Input type="number" value={priceRange[0]} onChange={(e) => setPriceRange([+e.target.value, priceRange[1]])} />
-                  <span>–</span>
-                  <Input type="number" value={priceRange[1]} onChange={(e) => setPriceRange([priceRange[0], +e.target.value])} />
-                </div>
+             <div>
+              <Typography variant="small" className="block mb-2 font-medium">Razpon cen (€)</Typography>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Input
+                  type="number"
+                  size="md"
+                  value={priceRange[0]}
+                  onChange={(e) => setPriceRange([+e.target.value, priceRange[1]])}
+                  className="w-24"
+                />
+                <span className="text-sm">–</span>
+                <Input
+                  type="number"
+                  size="md"
+                  value={priceRange[1]}
+                  onChange={(e) => setPriceRange([priceRange[0], +e.target.value])}
+                  className="w-24"
+                />
               </div>
+            </div>
 
-              <Button variant="outlined" fullWidth onClick={() => {
-                setSearch("");
-                setSelectedCats([]);
-                setPriceRange([0, 100]);
-                setSelectedStores([]);
-              }}>Počisti filtre</Button>
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={() => {
+                  setSearch("");
+                  setSelectedCats([]);
+                  setPriceRange([0, 100]);
+                  setOnlyDiscounted(false);
+                  setSelectedStores([]);
+                  setInitialLoadDone(false); // 🔁 sproži znova začetni fetch
+                }}
+              >
+                Počisti filtre
+              </Button>
+
             </CardBody>
           </Card>
         </aside>
 
-        <section className="flex-1">
-          {loading ? (
-            <Typography className="text-center text-gray-500">Nalagam izdelke...</Typography>
-          ) : paginated.length === 0 ? (
-            <Typography className="text-center text-gray-500">Ni najdenih izdelkov.</Typography>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {paginated.map((p, index) => (
-                  <Card key={index} className="overflow-hidden">
-                    <CardHeader floated={false} className="h-36 flex items-center justify-center bg-white">
-                      <img src={p.image?.startsWith("http") ? p.image : "/img/no-image.png"} alt={p.name} className="max-h-28 w-auto object-contain" />
-                    </CardHeader>
-                    <CardBody className="pb-4">
-                      <Typography variant="h5" className="mb-2 font-bold">{p.name}</Typography>
-                      <Typography variant="paragraph" className="mb-2 text-blue-gray-600">
-                        {categorize(p)} – {p.store || "Neznana trgovina"}
-                      </Typography>
-                      <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
-                        {p.actionPrice != null ? (
-                          <>
-                            <span className="line-through text-gray-500">
-                              {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                            </span>
-                            <span className="text-red-600 font-bold">
-                              {(parseFloat(p.actionPrice?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                          </>
-                        )}
-                      </Typography>
-                      <RouterLink to={`/products/${p._id}`}>
-                        <Button size="sm">
-                          Več
-                        </Button>
-                      </RouterLink>
-                      <br /><br />
-                      <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
-                        Posodobljeno: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
-                      </Typography>
-                    </CardBody>
-                  </Card>
-                ))}
+       <section className="flex-1">
+  {loading ? (
+    <Typography className="text-center text-gray-500">Nalagam izdelke...</Typography>
+  ) : paginated.length === 0 ? (
+    <Typography className="text-center text-gray-500">Ni najdenih izdelkov.</Typography>
+  ) : (
+    <>
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {paginated.map((p, index) => (
+          <Card key={index} className="overflow-hidden">
+            <CardHeader floated={false} className="h-36 flex items-center justify-center bg-white">
+              <img
+                src={p.image?.startsWith("http") ? p.image : "/img/no-image.png"}
+                alt={p.name}
+                className="max-h-28 w-auto object-contain"
+              />
+            </CardHeader>
+            <CardBody className="pb-4">
+              <Typography variant="h5" className="mb-2 font-bold">{p.name}</Typography>
+              <Typography variant="paragraph" className="mb-2 text-blue-gray-600">
+                {categorize(p)} – {p.store || "Neznana trgovina"}
+              </Typography>
+              <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
+                {p.actionPrice != null ? (
+                  <>
+                    <span className="line-through text-gray-500">
+                      {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                    </span>
+                    <span className="text-red-600 font-bold">
+                      {(parseFloat(p.actionPrice?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                  </>
+                )}
+              </Typography>
+
+             <div className="mb-2">
+                <RouterLink to={`/products/${p._id}`}>
+                  <Button size="sm" className="w-full">
+                    Več
+                  </Button>
+                </RouterLink>
               </div>
-              {renderPagination()}
-              <div className="h-20" />
-            </>
-          )}
-        </section>
+
+              {user && (
+              <div className="mb-4">
+                <Button
+                  size="sm"
+                  color="green"
+                  className="w-full"
+                  onClick={() => openDialog(p)}
+                >
+                  Dodaj v seznam
+                </Button>
+              </div>
+            )}
+
+              <br />
+              <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
+                Posodobljeno: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
+              </Typography>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+      {renderPagination()}
+      <div className="h-20" />
+    </>
+  )}
+</section>
+
+<Dialog open={showDialog} handler={() => setShowDialog(false)}>
+  <DialogHeader>Dodaj v nakupovalni seznam</DialogHeader>
+  <DialogBody>
+    <Typography className="mb-2">Izberi seznam:</Typography>
+    <Select
+      value={selectedListId}
+      onChange={(val) => setSelectedListId(val)}
+      label="Seznam"
+    >
+      {userLists.map((list) => (
+        <Option key={list.id} value={list.id}>
+          {list.name}
+        </Option>
+      ))}
+    </Select>
+  </DialogBody>
+  <DialogFooter>
+    <Button variant="text" color="red" onClick={() => setShowDialog(false)} className="mr-2">
+      Prekliči
+    </Button>
+    <Button
+      color="green"
+      onClick={async () => {
+        if (selectedProduct && selectedListId) {
+          await addItemToList(auth.currentUser.uid, selectedListId, selectedProduct);
+          setShowDialog(false);
+        }
+      }}
+    >
+      Dodaj
+    </Button>
+  </DialogFooter>
+</Dialog>
+
       </div>
     </>
   );
 }
+
+
 
 export default Products;
