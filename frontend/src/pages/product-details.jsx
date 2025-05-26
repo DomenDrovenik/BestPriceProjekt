@@ -21,6 +21,12 @@ import {
     YAxis,
     Tooltip,
   } from "recharts";
+  import {
+    Dialog,
+    DialogHeader,
+    DialogBody,
+    DialogFooter,
+  } from "@material-tailwind/react";
 import { PageTitle, PriceComparison } from "@/widgets/layout";
 import { PriceAlertButton } from "@/widgets/cards";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
@@ -43,6 +49,11 @@ export function ProductDetails() {
     const [editing, setEditing] = useState(null); // userId, ki ga urejamo
     const [editCommentText, setEditCommentText] = useState("");
     const [editRating, setEditRating] = useState(0);
+    const [open, setOpen] = useState(false)
+
+    const toggleOpen = () =>{
+      setOpen(!open);
+    }
 
     useEffect(() => {
       if (currentUser && comments.length > 0) {
@@ -184,7 +195,7 @@ const handleEditSubmit = async (userId) => {
 };
 
 const handleDeleteComment = async (userId) => {
-  if (!window.confirm("Ali si prepričan, da želiš izbrisati komentar?")) return;
+  
 
   try {
     const res = await fetch(`http://localhost:3000/api/products/${id}/comments/${userId}`, {
@@ -405,9 +416,25 @@ const handleDeleteComment = async (userId) => {
           }}>
             Uredi
           </Button>
-          <Button size="sm" variant="outlined" color="red" onClick={() => handleDeleteComment(comment.userId)}>
+          <Button size="sm" variant="outlined" color="red"  onClick={toggleOpen}>
             Zbriši
           </Button>
+          <Dialog open={open} handler={toggleOpen}>
+            <DialogBody divider className="space-y-4">
+              <Typography>Ste prepričani, da želite zbrisati komentar?</Typography>
+            </DialogBody>
+            <DialogFooter className="space-x-2">
+              <Button
+                variant="text"
+                onClick={toggleOpen}
+              >
+                Prekliči
+              </Button>
+              <Button onClick={() => handleDeleteComment(comment.userId)}>
+                Zbriši
+              </Button>
+            </DialogFooter>
+          </Dialog>
         </div>
       )}
     </Card>
