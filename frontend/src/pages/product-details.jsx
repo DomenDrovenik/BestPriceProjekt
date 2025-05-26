@@ -195,7 +195,7 @@ const handleEditSubmit = async (userId) => {
 };
 
 const handleDeleteComment = async (userId) => {
-  
+  toggleOpen();
 
   try {
     const res = await fetch(`http://localhost:3000/api/products/${id}/comments/${userId}`, {
