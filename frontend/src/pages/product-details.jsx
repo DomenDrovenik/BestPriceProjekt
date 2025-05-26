@@ -22,6 +22,7 @@ import {
     Tooltip,
   } from "recharts";
 import { PageTitle, PriceComparison } from "@/widgets/layout";
+import { PriceAlertButton } from "@/widgets/cards";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth } from "../firebase";
@@ -316,7 +317,15 @@ const handleDeleteComment = async (userId) => {
         </div>
       </div>
 
+      <div className="mt-4 flex justify-center">
+        <PriceAlertButton product={product} />
+      </div>
+
+      <div>
+        <br />
+      </div>
       <PriceComparison productName={product.name} />
+
 
 
       {/* Komentarji */}
