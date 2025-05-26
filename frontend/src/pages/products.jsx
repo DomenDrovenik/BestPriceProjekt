@@ -34,6 +34,7 @@ export function Products() {
   const itemsPerPage = 24;
   const [onlyDiscounted, setOnlyDiscounted] = useState(false);
   const [sortBy, setSortBy] = useState("");
+  const [minRating, setMinRating] = useState(0);
 
  const storeMap = {
   merkator: "Mercator",
@@ -66,10 +67,20 @@ const [initialLoadDone, setInitialLoadDone] = useState(false);
         const store = Object.entries(storeMap).find(([key]) =>
           source.includes(key)
         )?.[1] || "Trgovina";
-        return { ...p, store };
+        
+        // Calculate average rating
+        const avgRating = p.comments && p.comments.length > 0 
+          ? p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length
+          : 0;
+        
+        return { 
+          ...p, 
+          store,
+          avgRating: parseFloat(avgRating.toFixed(1)) 
+        };
       });
       setProducts(enriched);
-      setInitialLoadDone(true); // 🔁 zabeležimo prvi load
+      setInitialLoadDone(true);
     } catch (error) {
       console.error("Napaka pri pridobivanju vseh izdelkov:", error);
     } finally {
@@ -83,7 +94,7 @@ const [initialLoadDone, setInitialLoadDone] = useState(false);
   // Ob spremembi trgovcev - pošlji nove API klice
 useEffect(() => {
   const fetchSelectedStores = async () => {
-    if (selectedStores.length === 0) return; // ⛔ nič ne naloži, če ni izbranih
+    if (selectedStores.length === 0) return;
 
     setLoading(true);
     try {
@@ -91,7 +102,14 @@ useEffect(() => {
         selectedStores.map(async (storeKey) => {
           const res = await fetch(`http://localhost:3000/${storeKey}`);
           const data = await res.json();
-          return data.map((p) => ({ ...p, store: storeMap[storeKey] }));
+          return data.map((p) => ({ 
+            ...p, 
+            store: storeMap[storeKey],
+            
+            avgRating: p.comments && p.comments.length > 0 
+              ? parseFloat(p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length).toFixed(1)
+              : 0
+          }));
         })
       );
       setProducts(allData.flat());
@@ -120,7 +138,7 @@ useEffect(() => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, selectedCats, priceRange]);
+  }, [search, selectedCats, priceRange, minRating, sortBy]);
 
   const toggleStore = (storeKey) => {
     setSelectedStores((prev) =>
@@ -176,7 +194,13 @@ useEffect(() => {
       const cena = parseFloat(p.price?.toString().replace(",", "."));
       return cena >= priceRange[0] && cena <= priceRange[1];
     })
-    .filter((p) => !onlyDiscounted || p.actionPrice != null);
+    .filter((p) => !onlyDiscounted || p.actionPrice != null)
+    .filter((p) => p.avgRating >= minRating)
+    .sort((a, b) => {
+      if (sortBy === "rating-desc") return b.avgRating - a.avgRating;
+      if (sortBy === "rating-asc") return a.avgRating - b.avgRating;
+      return 0;
+    });
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -224,13 +248,11 @@ useEffect(() => {
       return () => unsubscribe();
     }, []);
 
-      // Funkcija za pridobitev seznamov uporabnika
     const fetchUserLists = async (uid) => {
       const snapshot = await getDocs(collection(firestore, "users", uid, "lists"));
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     };
 
-    // Dodaj izdelek v izbran seznam
     const addItemToList = async (userId, listId, product) => {
       const ref = doc(firestore, "users", userId, "lists", listId);
       const listSnap = await getDocs(collection(firestore, "users", userId, "lists"));
@@ -251,7 +273,7 @@ useEffect(() => {
           name: product.name,
           amount: "",
           done: false,
-          store: product.store || "", // dodano!
+          store: product.store || "",
         };
 
       const updatedItems = [...existingItems, newItem];
@@ -264,25 +286,24 @@ useEffect(() => {
     const [selectedListId, setSelectedListId] = useState("");
     const [selectedProduct, setSelectedProduct] = useState(null);
 
-
     const openDialog = async (product) => {
-  const user = auth.currentUser;
-  if (!user) {
-    toast.error("Za uporabo te funkcije se moraš prijaviti.");
-    return;
-  }
+      const user = auth.currentUser;
+      if (!user) {
+        toast.error("Za uporabo te funkcije se moraš prijaviti.");
+        return;
+      }
 
-  const lists = await fetchUserLists(user.uid);
-  if (lists.length === 0) {
-  	  toast("Nimaš še ustvarjenih seznamov.", { icon: "ℹ️" });
-    return;
-  }
+      const lists = await fetchUserLists(user.uid);
+      if (lists.length === 0) {
+        toast("Nimaš še ustvarjenih seznamov.", { icon: "ℹ️" });
+        return;
+      }
 
-  setUserLists(lists);
-  setSelectedProduct(product);
-  setSelectedListId(lists[0].id); // privzeto prvi seznam
-  setShowDialog(true);
-};
+      setUserLists(lists);
+      setSelectedProduct(product);
+      setSelectedListId(lists[0].id);
+      setShowDialog(true);
+    };
 
   return (
     <>
@@ -332,6 +353,7 @@ useEffect(() => {
                   ))}
                 </div>
               </div>
+              
               <div>
                 <Typography variant="small" className="block mb-2 font-medium">Posebne ponudbe</Typography>
                 <Checkbox
@@ -340,35 +362,56 @@ useEffect(() => {
                   onChange={() => setOnlyDiscounted(!onlyDiscounted)}
                 />
               </div>
-              {/*<div className="mt-4">
-               <Typography variant="small" className="block mb-2 font-medium">Razvrsti po oceni</Typography>
-              <Select label="Izberi možnost" value={sortBy} onChange={(val) => setSortBy(val)}>
-                <Option value="">Brez razvrstitve</Option>
-                <Option value="rating-desc">Najvišja ocena</Option>
-                <Option value="rating-asc">Najnižja ocena</Option>
-              </Select>
-            </div> */}
-
-             <div>
-              <Typography variant="small" className="block mb-2 font-medium">Razpon cen (€)</Typography>
-              <div className="flex flex-wrap gap-2 items-center">
-                <Input
-                  type="number"
-                  size="md"
-                  value={priceRange[0]}
-                  onChange={(e) => setPriceRange([+e.target.value, priceRange[1]])}
-                  className="w-24"
-                />
-                <span className="text-sm">–</span>
-                <Input
-                  type="number"
-                  size="md"
-                  value={priceRange[1]}
-                  onChange={(e) => setPriceRange([priceRange[0], +e.target.value])}
-                  className="w-24"
-                />
+              
+              <div>
+                <Typography variant="small" className="block mb-2 font-medium">Minimalna ocena</Typography>
+                <Select 
+                  value={minRating.toString()} 
+                  onChange={(val) => setMinRating(parseFloat(val))}
+                  label="Izberi oceno"
+                >
+                  <Option value="0">Vse ocene</Option>
+                  <Option value="1">1+ zvezdica</Option>
+                  <Option value="2">2+ zvezdici</Option>
+                  <Option value="3">3+ zvezdice</Option>
+                  <Option value="4">4+ zvezdice</Option>
+                  <Option value="4.5">4.5+ zvezdic</Option>
+                </Select>
               </div>
-            </div>
+              
+              <div>
+                <Typography variant="small" className="block mb-2 font-medium">Razvrsti po</Typography>
+                <Select 
+                  value={sortBy} 
+                  onChange={(val) => setSortBy(val)}
+                  label="Razvrsti izdelke"
+                >
+                  <Option value="">Privzeta razvrstitev</Option>
+                  <Option value="rating-desc">Najvišja ocena</Option>
+                  <Option value="rating-asc">Najnižja ocena</Option>
+                </Select>
+              </div>
+
+              <div>
+                <Typography variant="small" className="block mb-2 font-medium">Razpon cen (€)</Typography>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <Input
+                    type="number"
+                    size="md"
+                    value={priceRange[0]}
+                    onChange={(e) => setPriceRange([+e.target.value, priceRange[1]])}
+                    className="w-24"
+                  />
+                  <span className="text-sm">–</span>
+                  <Input
+                    type="number"
+                    size="md"
+                    value={priceRange[1]}
+                    onChange={(e) => setPriceRange([priceRange[0], +e.target.value])}
+                    className="w-24"
+                  />
+                </div>
+              </div>
 
               <Button
                 variant="outlined"
@@ -379,140 +422,136 @@ useEffect(() => {
                   setPriceRange([0, 100]);
                   setOnlyDiscounted(false);
                   setSelectedStores([]);
-                  setInitialLoadDone(false); // 🔁 sproži znova začetni fetch
+                  setMinRating(0);
+                  setSortBy("");
+                  setInitialLoadDone(false);
                 }}
               >
                 Počisti filtre
               </Button>
-
             </CardBody>
           </Card>
         </aside>
 
-       <section className="flex-1">
-  {loading ? (
-    <Typography className="text-center text-gray-500">Nalagam izdelke...</Typography>
-  ) : paginated.length === 0 ? (
-    <Typography className="text-center text-gray-500">Ni najdenih izdelkov.</Typography>
-  ) : (
-    <>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {paginated.map((p, index) => (
-          <Card key={index} className="overflow-hidden">
-            <CardHeader floated={false} className="h-36 flex items-center justify-center bg-white">
-              <img
-                src={p.image?.startsWith("http") ? p.image : "/img/no-image.png"}
-                alt={p.name}
-                className="max-h-28 w-auto object-contain"
-              />
-            </CardHeader>
-            <CardBody className="pb-4">
-              <Typography variant="h5" className="mb-2 font-bold">{p.name}</Typography>
-              <Typography variant="paragraph" className="mb-2 text-blue-gray-600">
-                {categorize(p)} – {p.store || "Neznana trgovina"}
-              </Typography>
-              <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
-                {p.actionPrice != null ? (
-                  <>
-                    <span className="line-through text-gray-500">
-                      {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                    </span>
-                    <span className="text-red-600 font-bold">
-                      {(parseFloat(p.actionPrice?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                  </>
-                )}
-                
-                {p.comments && p.comments.length > 0 && (
-  <div className="flex justify-end">
-    <span className="text-yellow-400 flex items-center gap-1">
-      {(p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length).toFixed(1)}
-      <StarIcon className="h-6 w-6 text-yellow-400" />
-    </span>
-  </div>
-)}
-                  
-                  
-              </Typography>
+        <section className="flex-1">
+          {loading ? (
+            <Typography className="text-center text-gray-500">Nalagam izdelke...</Typography>
+          ) : paginated.length === 0 ? (
+            <Typography className="text-center text-gray-500">Ni najdenih izdelkov.</Typography>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {paginated.map((p, index) => (
+                  <Card key={index} className="overflow-hidden">
+                    <CardHeader floated={false} className="h-36 flex items-center justify-center bg-white">
+                      <img
+                        src={p.image?.startsWith("http") ? p.image : "/img/no-image.png"}
+                        alt={p.name}
+                        className="max-h-28 w-auto object-contain"
+                      />
+                    </CardHeader>
+                    <CardBody className="pb-4">
+                      <Typography variant="h5" className="mb-2 font-bold">{p.name}</Typography>
+                      <Typography variant="paragraph" className="mb-2 text-blue-gray-600">
+                        {categorize(p)} – {p.store || "Neznana trgovina"}
+                      </Typography>
+                      <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
+                        {p.actionPrice != null ? (
+                          <>
+                            <span className="line-through text-gray-500">
+                              {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                            </span>
+                            <span className="text-red-600 font-bold">
+                              {(parseFloat(p.actionPrice?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                          </>
+                        )}
+                        
+                        {p.avgRating > 0 && (
+                          <div className="flex justify-end">
+                            <span className="text-yellow-400 flex items-center gap-1">
+                              {p.avgRating.toFixed(1)}
+                              <StarIcon className="h-6 w-6 text-yellow-400" />
+                            </span>
+                          </div>
+                        )}
+                      </Typography>
 
-             <div className="mb-2">
-                <RouterLink to={`/products/${p._id}`}>
-                  <Button size="sm" className="w-full">
-                    Več
-                  </Button>
-                </RouterLink>
+                      <div className="mb-2">
+                        <RouterLink to={`/products/${p._id}`}>
+                          <Button size="sm" className="w-full">
+                            Več
+                          </Button>
+                        </RouterLink>
+                      </div>
+
+                      {user && (
+                        <div className="mb-4">
+                          <Button
+                            size="sm"
+                            color="green"
+                            className="w-full"
+                            onClick={() => openDialog(p)}
+                          >
+                            Dodaj v seznam
+                          </Button>
+                        </div>
+                      )}
+
+                      <br />
+                      <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
+                        Posodobljeno: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
+                      </Typography>
+                    </CardBody>
+                  </Card>
+                ))}
               </div>
+              {renderPagination()}
+              <div className="h-20" />
+            </>
+          )}
+        </section>
 
-              {user && (
-              <div className="mb-4">
-                <Button
-                  size="sm"
-                  color="green"
-                  className="w-full"
-                  onClick={() => openDialog(p)}
-                >
-                  Dodaj v seznam
-                </Button>
-              </div>
-            )}
-
-              <br />
-              <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
-                Posodobljeno: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
-              </Typography>
-            </CardBody>
-          </Card>
-        ))}
-      </div>
-      {renderPagination()}
-      <div className="h-20" />
-    </>
-  )}
-</section>
-
-<Dialog open={showDialog} handler={() => setShowDialog(false)}>
-  <DialogHeader>Dodaj v nakupovalni seznam</DialogHeader>
-  <DialogBody>
-    <Typography className="mb-2">Izberi seznam:</Typography>
-    <Select
-      value={selectedListId}
-      onChange={(val) => setSelectedListId(val)}
-      label="Seznam"
-    >
-      {userLists.map((list) => (
-        <Option key={list.id} value={list.id}>
-          {list.name}
-        </Option>
-      ))}
-    </Select>
-  </DialogBody>
-  <DialogFooter>
-    <Button variant="text" color="red" onClick={() => setShowDialog(false)} className="mr-2">
-      Prekliči
-    </Button>
-    <Button
-      color="green"
-      onClick={async () => {
-        if (selectedProduct && selectedListId) {
-          await addItemToList(auth.currentUser.uid, selectedListId, selectedProduct);
-          setShowDialog(false);
-        }
-      }}
-    >
-      Dodaj
-    </Button>
-  </DialogFooter>
-</Dialog>
-
+        <Dialog open={showDialog} handler={() => setShowDialog(false)}>
+          <DialogHeader>Dodaj v nakupovalni seznam</DialogHeader>
+          <DialogBody>
+            <Typography className="mb-2">Izberi seznam:</Typography>
+            <Select
+              value={selectedListId}
+              onChange={(val) => setSelectedListId(val)}
+              label="Seznam"
+            >
+              {userLists.map((list) => (
+                <Option key={list.id} value={list.id}>
+                  {list.name}
+                </Option>
+              ))}
+            </Select>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="text" color="red" onClick={() => setShowDialog(false)} className="mr-2">
+              Prekliči
+            </Button>
+            <Button
+              color="green"
+              onClick={async () => {
+                if (selectedProduct && selectedListId) {
+                  await addItemToList(auth.currentUser.uid, selectedListId, selectedProduct);
+                  setShowDialog(false);
+                }
+              }}
+            >
+              Dodaj
+            </Button>
+          </DialogFooter>
+        </Dialog>
       </div>
     </>
   );
 }
-
-
 
 export default Products;

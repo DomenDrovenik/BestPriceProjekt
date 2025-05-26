@@ -249,11 +249,11 @@ async function findBestWithFuse(col, query, limit = 1) {
   //    tu najprej poiščemo OR po besedah, da ne beremo cele zbirke
   const words = query
     .split(/\s+/)
-    .map(w => w.trim())
-    .filter(w => w.length >= 3);
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 3);
   let prelim;
   if (words.length) {
-    const orRegex = words.map(w => ({ name: { $regex: w, $options: "i" } }));
+    const orRegex = words.map((w) => ({ name: { $regex: w, $options: "i" } }));
     prelim = await col.find({ $or: orRegex }).limit(100).toArray();
   } else {
     prelim = await col.find().limit(100).toArray();
@@ -264,10 +264,10 @@ async function findBestWithFuse(col, query, limit = 1) {
   // 2) nastavimo Fuse
   const fuse = new Fuse(prelim, {
     keys: ["name"],
-    threshold: 0.4,           // 0–1, manj = strožja ujemanja
-    distance: 100,            // maksimalna “razdalja” v nizu
-    minMatchCharLength: 3,    // najmanjša dolžina za fuzzy komponente
-    ignoreLocation: true,     // ne kaznuje za razlike v poziciji
+    threshold: 0.4, // 0–1, manj = strožja ujemanja
+    distance: 100, // maksimalna “razdalja” v nizu
+    minMatchCharLength: 3, // najmanjša dolžina za fuzzy komponente
+    ignoreLocation: true, // ne kaznuje za razlike v poziciji
   });
 
   // 3) poiščemo najboljše rezultate
