@@ -256,6 +256,42 @@ const itemsGroupedByStore = () => {
   return groups;
 };
 
+const storeDiscounts = {
+   "Mercator": {
+    discount: 0.10,
+    note: "10 % ob sredah za upokojence, ali 25 % na en izdelek ob petkih in sobotah, če je vrednost preostale košarice več kot 5 €"
+  },
+ "Tuš": {
+    discount: 0.10,
+    note: "10 % ob ponedeljkih za člane Tuš kluba, ali 25 % na en izdelek ob torkih in četrtkih za člane Tuš kluba"
+  },
+  "Lidl": {
+    discount: 0,
+    note: "Digitalni kuponi v aplikaciji Lidl Plus"
+  },
+  "Hofer": {
+    discount: 0,
+    note: "Občasne vikend akcije"
+  },
+  "Jager": {
+    discount: 0.10,
+    note: "10 % vrednosti nakupa se vrne na Jager kartico ugodnosti in jo lahko koristiš ob naslednjem nakupu."
+  }
+};
+
+const [isPensioner, setIsPensioner] = useState(false);
+const itemsWith25 = items.filter(i => i.extraDiscount25);
+const totalRaw = items.reduce((sum, i) => sum + i.price, 0);
+const [mercatorPromo, setMercatorPromo] = useState("none");
+const [mercatorDialogOpen, setMercatorDialogOpen] = useState(false);
+const [selectedMercatorOption, setSelectedMercatorOption] = useState("none"); // 'none' | 'pension' | '25on1'
+const [selectedItemId25, setSelectedItemId25] = useState(null);
+
+const [tusDialogOpen, setTusDialogOpen] = useState(false);
+const [selectedTusOption, setSelectedTusOption] = useState("none"); // 'none' | 'club' | '25on1'
+const [selectedItemId25Tus, setSelectedItemId25Tus] = useState(null);
+
+
 
   return (
     <>
@@ -356,7 +392,10 @@ const itemsGroupedByStore = () => {
         <div className="max-w-3xl mx-auto px-4 mt-8"> 
           <Card>
             <CardBody className="space-y-4">
+              <div className="flex flex-col gap-2">
+              </div>
               <Typography variant="h5">{currentList.name}</Typography>
+            
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" color="blue" onClick={copyListToClipboard}>
                   Kopiraj
@@ -412,55 +451,56 @@ const itemsGroupedByStore = () => {
               </div>
 
              {/* Seznam izdelkov */}
-            {/* Seznam izdelkov */}
-{currentList.items.length === 0 ? (
-  <Typography color="gray" className="text-center italic">
-    Seznam je prazen.
-  </Typography>
-) : (
-  <>
-    {/* Trgovine (abecedno) */}
-    {Object.keys(itemsGroupedByStore())
-      .filter(key => key !== "__done__" && key !== "__noStore__")
-      .sort()
-      .map(store => (
-        <div key={store} className="mb-4">
-          <Typography variant="small" className="font-bold text-gray-700 mb-1 border-b pb-1">
-            {store}
-          </Typography>
-          <ul className="space-y-2">
-            {itemsGroupedByStore()[store].map((item) => (
-              <li key={item.id} className="flex justify-between items-center">
-                <Checkbox
-                  checked={item.done}
-                  onChange={() => toggleDone(item.id)}
-                  label={
-                    <span>
-                      {item.name}
-                      {item.amount ? ` – ${item.amount}` : ""}
-                      {editingItemId === item.id && (
-                        <span className="ml-2 text-blue-500 italic">(urejaš)</span>
-                      )}
-                    </span>
-                  }
-                />
-                <div className="flex gap-1">
-                  <IconButton size="sm" color="blue" onClick={() => {
-                    setNewItemName(item.name);
-                    setNewItemAmount(item.amount);
-                    setEditingItemId(item.id);
-                  }}>
-                    <PencilIcon className="h-4 w-4" />
-                  </IconButton>
-                  <IconButton size="sm" color="red" onClick={() => removeItem(item.id)}>
-                    <TrashIcon className="h-4 w-4" />
-                  </IconButton>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+    {currentList.items.length === 0 ? (
+      <Typography color="gray" className="text-center italic">
+        Seznam je prazen.
+      </Typography>
+    ) : (
+      <>
+        {/* Trgovine (abecedno) */}
+        {Object.keys(itemsGroupedByStore())
+          .filter(key => key !== "__done__" && key !== "__noStore__")
+          .sort()
+          .map(store => (
+            <div key={store} className="mb-4">
+              <Typography variant="small" className="font-bold text-gray-700 mb-1 border-b pb-1">
+                {store}
+              </Typography>
+              <ul className="space-y-2">
+                {itemsGroupedByStore()[store].map((item) => (
+                  <li key={item.id} className="flex justify-between items-center">
+                    <Checkbox
+                      checked={item.done}
+                      onChange={() => toggleDone(item.id)}
+                      label={
+                        <span>
+                        {item.name}
+                        {item.amount ? ` – ${item.amount}` : ""}
+                        {item.price ? ` – ${item.price.toFixed(2)} €` : ""}
+                          {editingItemId === item.id && (
+                            <span className="ml-2 text-blue-500 italic">(urejaš)</span>
+                          )}
+                        </span>
+                      }
+                    />
+
+                    <div className="flex gap-1">
+                      <IconButton size="sm" color="blue" onClick={() => {
+                        setNewItemName(item.name);
+                        setNewItemAmount(item.amount);
+                        setEditingItemId(item.id);
+                      }}>
+                        <PencilIcon className="h-4 w-4" />
+                      </IconButton>
+                      <IconButton size="sm" color="red" onClick={() => removeItem(item.id)}>
+                        <TrashIcon className="h-4 w-4" />
+                      </IconButton>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
 
     {/* Drugo (artikli brez trgovine) */}
     {itemsGroupedByStore().__noStore__["Drugo"]?.length > 0 && (
@@ -478,6 +518,7 @@ const itemsGroupedByStore = () => {
                   <span>
                     {item.name}
                     {item.amount ? ` – ${item.amount}` : ""}
+                    {item.price ? ` – ${item.price.toFixed(2)} €` : ""}
                     {editingItemId === item.id && (
                       <span className="ml-2 text-blue-500 italic">(urejaš)</span>
                     )}
@@ -518,6 +559,8 @@ const itemsGroupedByStore = () => {
                   <span className="line-through text-gray-500">
                     {item.name}
                     {item.amount ? ` – ${item.amount}` : ""}
+                    {item.price ? ` – ${item.price.toFixed(2)} €` : ""}
+
                     {item.store && (
                       <span className="text-sm italic ml-2">({item.store})</span>
                     )}
@@ -547,12 +590,433 @@ const itemsGroupedByStore = () => {
   </>
 )}
 
+{currentList.items.length > 0 && (
+  <div className="mt-8 pt-4 border-t space-y-6">
+    <Typography variant="h5" className="font-semibold mb-2">
+      Skupna vrednost po trgovinah:
+    </Typography>
+    
+   <Button
+      color="blue-gray"
+      variant="outlined"
+      size="sm"
+      className="mr-2"
+      onClick={() => setMercatorDialogOpen(true)}
+    >
+      Izberi Mercator popust
+    </Button>
+    <Button
+      color="blue-gray"
+      variant="outlined"
+      size="sm"
+      onClick={() => setTusDialogOpen(true)}
+    >
+      Izberi Tuš popust
+    </Button>
+
+
+    {Object.entries(
+      currentList.items
+        .filter(i => !i.done && i.store && i.price)
+        .reduce((acc, item) => {
+          const store = item.store;
+          if (!acc[store]) acc[store] = [];
+          acc[store].push(item);
+          return acc;
+        }, {})
+    ).map(([store, items]) => {
+      const total = items.reduce((sum, i) => sum + i.price, 0);
+      const discountInfo = storeDiscounts[store];
+      const discount = discountInfo?.discount || 0;
+
+      const totalWithDiscount = (() => {
+        if (store === "Tuš") {
+        const totalRaw = items.reduce((sum, i) => sum + i.price, 0);
+        const item25 = items.find(i => i.extraDiscount25Tus);
+      if (selectedTusOption === "25on1" && item25) {
+        return items.reduce((sum, item) => {
+          let price = item.price;
+          if (item.id === item25.id) price *= 0.75;
+          return sum + price;
+        }, 0);
+      }
+
+      if (selectedTusOption === "club" && totalRaw > 20) {
+        return items.reduce((sum, item) => sum + item.price * 0.9, 0);
+      }
+        return totalRaw;
+      }
+
+      if (store !== "Mercator") {
+        return items.reduce((sum, item) => {
+          let price = item.price;
+          if (discount > 0) price *= (1 - discount);
+          return sum + price;
+        }, 0);
+      }
+      if (store === "Jager") {
+        const totalRaw = items.reduce((sum, i) => sum + i.price, 0);
+        const has10Back = totalRaw > 20;
+
+        // vrednost nakupa ostane nespremenjena – ni popusta, je vračilo
+        return totalRaw;
+      }
+
+        const totalRaw = items.reduce((sum, i) => sum + i.price, 0);
+        const pensionerDiscount = selectedMercatorOption === "pension" ? 0.9 : 1;
+        const itemsWith25 = items.filter(i => i.extraDiscount25);
+        const item25 = itemsWith25.length > 0 ? itemsWith25[0] : null;
+
+        // 25 % na en izdelek – če omogočen, samo 1 izdelek označen in preostanek > 5 €
+      if (
+        selectedMercatorOption === "25on1" &&
+        item25 &&
+        itemsWith25.length === 1 &&
+        totalRaw > 5
+      )
+      {
+          return items.reduce((sum, item) => {
+            let price = item.price;
+            if (item.id === item25.id) price *= 0.75;
+            price *= pensionerDiscount;
+            return sum + price;
+          }, 0);
+        }
+
+        // drugače le upokojenski popust
+        return items.reduce((sum, item) => sum + item.price * pensionerDiscount, 0);
+      })();
+
+
+
+      return (
+        <div key={store}>
+          <Typography variant="h6" className="font-medium">
+            {store}
+          </Typography>
+          <Typography variant="small" className="text-gray-800">
+            Skupaj: {total.toFixed(2)} €
+          </Typography>
+
+          {store !== "Jager" && (
+            <Typography variant="small" className="text-green-700">
+              S popustom: {totalWithDiscount.toFixed(2)} €
+            </Typography>
+          )}
+
+          {store === "Tuš" && (
+            <>
+              <Typography variant="small" className="text-gray-800 font-medium">
+                Uporabljen popust:{" "}
+                {selectedTusOption === "club"
+                  ? "10 % za člane Tuš kluba"
+                  : selectedTusOption === "25on1"
+                  ? "25 % na izdelek"
+                  : "brez popusta"}
+              </Typography>
+
+            {selectedTusOption === "25on1" && selectedItemId25Tus && (
+            <Typography variant="small" className="text-blue-gray-700 italic">
+              Popust velja za:{" "}
+              {
+                currentList.items.find((i) => i.id === selectedItemId25Tus)?.name ||
+                "neznan izdelek"
+              }
+                </Typography>
+              )}
+
+
+              {selectedTusOption === "25on1" && (
+                <Typography variant="small" className="text-blue-800 italic mt-2">
+                  25 % popust v Tušu velja <b>ob torkih in četrtkih</b>.
+                </Typography>
+              )}
+
+
+              {selectedTusOption === "club" && total <= 20 && (
+            <Typography variant="small" className="text-red-700 italic">
+              Vrednost nakupa mora biti več kot 20 €, da se uveljavi 10 % Tuš klub popust!
+            </Typography>
+          )}
+          <Typography variant="small" className="text-blue-gray-600 italic mt-1">
+            Za več akcij obišči:{" "}
+            <a
+              href="https://www.tus.si/katalog/tedenski-kuponi/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              povezava do drugih akcij
+            </a>
+          </Typography>
+
+            </>
+          )}
+
+         {store === "Jager" && (
+            <>
+              <Typography variant="small" className="text-gray-800 font-medium">
+                Uporabljen popust: brez neposrednega popusta – vračilo 10 % na kartico
+              </Typography>
+
+              {total > 20 ? (
+                <Typography variant="small" className="text-green-700 italic">
+                  Vračilo na kartico: {(total * 0.10).toFixed(2)} €
+                </Typography>
+              ) : (
+                <Typography variant="small" className="text-red-700 italic">
+                  Vrednost nakupa mora presegati 20 €, da se uveljavi vračilo 10 % na kartico.
+                </Typography>
+              )}
+              <Typography variant="small" className="text-blue-gray-600 italic mt-1">
+            Za več akcij obišči:{" "}
+            <a
+              href="https://www.jagerklub.com/index.php"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              povezava do drugih akcij
+            </a>
+          </Typography>
+            </>
+          )}
+
+          {store === "Mercator" && (
+            <>
+              <Typography variant="small" className="text-gray-800 font-medium">
+                Uporabljen popust:{" "}
+                {selectedMercatorOption === "pension"
+                  ? "10 % za upokojence"
+                  : selectedMercatorOption === "25on1"
+                  ? "25 % na izdelek"
+                  : "brez popusta"}
+              </Typography>
+
+              {selectedMercatorOption === "25on1" && selectedItemId25 && (
+                <Typography variant="small" className="text-blue-gray-700 italic">
+                  Popust velja za:{" "}
+                  {
+                    currentList.items.find((i) => i.id === selectedItemId25)?.name ||
+                    "neznan izdelek"
+                  }
+                </Typography>
+              )}
+
+              {selectedMercatorOption === "25on1" && itemsWith25.length > 1 && (
+                <Typography variant="small" className="text-red-700 italic">
+                  Samo en izdelek je lahko označen za 25 % popust!
+                </Typography>
+              )}
+
+              {selectedMercatorOption === "25on1" && total <= 5 && itemsWith25.length > 0 && (
+                <Typography variant="small" className="text-red-700 italic">
+                  Košarica mora presegati 5 €, da se uveljavi 25 % popust!
+                </Typography>
+              )}
+              <Typography variant="small" className="text-blue-gray-600 italic mt-1">
+            Za več akcij obišči:{" "}
+            <a
+              href="https://www.mercator.si/akcije-in-ugodnosti/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              povezava do drugih akcij
+            </a>
+          </Typography>
+      </>
+      )}
+          {discountInfo?.note && (
+            <Typography variant="small" className="text-blue-gray-600 italic">
+              {discountInfo.note}
+            </Typography>
+          )}
+
+        {store === "Lidl" && (
+          <Typography variant="small" className="text-blue-gray-600 italic mt-1">
+            Za več informacij o kuponih si poglejte:{" "}
+            <a
+              href="https://www.lidl.si/c/lidl-plus/a10024188?channel=store&tabCode=Current_Sales_Week"
+             target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              Lidl Plus kuponi
+            </a>
+          </Typography>
+        )}
+
+        {store === "Hofer" && (
+          <Typography variant="small" className="text-blue-gray-600 italic mt-1">
+            Za več informacij aktualni ponudbi: {" "}
+            <a
+              href="https://www.hofer.si/sl/ponudba/tedenska-akcija.html"
+             target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              povezava do aktualne akcije
+            </a>
+          </Typography>
+        )}
+        </div>
+        );
+        })}
+      </div>
+    )}
+
 
             </CardBody>
           </Card>
         </div>
     
       )}
+<Dialog open={mercatorDialogOpen} handler={() => setMercatorDialogOpen(false)} size="sm">
+  <DialogHeader>Izberi Mercator popust</DialogHeader>
+  <DialogBody className="space-y-4">
+    <div>
+      <label className="flex items-center gap-2">
+        <input
+          type="radio"
+          value="pension"
+          checked={selectedMercatorOption === "pension"}
+          onChange={() => setSelectedMercatorOption("pension")}
+        />
+        10 % upokojenski popust
+      </label>
+    </div>
+    <div>
+      <label className="flex items-center gap-2">
+        <input
+          type="radio"
+          value="25on1"
+          checked={selectedMercatorOption === "25on1"}
+          onChange={() => setSelectedMercatorOption("25on1")}
+        />
+        25 % popust na en izdelek
+      </label>
+      {selectedMercatorOption === "25on1" && (
+        <select
+          value={selectedItemId25 || ""}
+          onChange={(e) => setSelectedItemId25(Number(e.target.value))}
+          className="mt-2 block w-full border px-2 py-1 rounded"
+        >
+          <option value="">-- Izberi izdelek --</option>
+          {items.filter(i => i.store === "Mercator").map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name} {item.price ? `– ${item.price.toFixed(2)} €` : ""}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  </DialogBody>
+  <DialogFooter>
+    <Button variant="text" onClick={() => setMercatorDialogOpen(false)}>
+      Prekliči
+    </Button>
+    <Button
+      color="blue"
+      onClick={async () => {
+        setIsPensioner(selectedMercatorOption === "pension");
+
+        // nastavi 25% na izbrani izdelek (ostale počisti)
+        const updatedItems = currentList.items.map((item) => {
+          return {
+            ...item,
+            extraDiscount25: selectedMercatorOption === "25on1" && item.id === selectedItemId25,
+          };
+        });
+
+        await updateDoc(doc(firestore, "users", user.uid, "lists", selectedListId), {
+          items: updatedItems,
+        });
+
+        setLists(prev =>
+          prev.map(list =>
+            list.id === selectedListId ? { ...list, items: updatedItems } : list
+          )
+        );
+
+        setMercatorDialogOpen(false);
+      }}
+    >
+      Shrani izbiro
+    </Button>
+  </DialogFooter>
+</Dialog>
+<Dialog open={tusDialogOpen} handler={() => setTusDialogOpen(false)} size="sm">
+  <DialogHeader>Izberi Tuš popust</DialogHeader>
+  <DialogBody className="space-y-4">
+    <div>
+      <label className="flex items-center gap-2">
+        <input
+          type="radio"
+          value="club"
+          checked={selectedTusOption === "club"}
+          onChange={() => setSelectedTusOption("club")}
+        />
+        10 % popust za člane Tuš kluba (ob ponedeljkih)
+      </label>
+    </div>
+    <div>
+      <label className="flex items-center gap-2">
+        <input
+          type="radio"
+          value="25on1"
+          checked={selectedTusOption === "25on1"}
+          onChange={() => setSelectedTusOption("25on1")}
+        />
+        25 % popust na en izdelek (ob torkih in četrtkih)
+      </label>
+      {selectedTusOption === "25on1" && (
+        <select
+          value={selectedItemId25Tus || ""}
+          onChange={(e) => setSelectedItemId25Tus(Number(e.target.value))}
+          className="mt-2 block w-full border px-2 py-1 rounded"
+        >
+          <option value="">-- Izberi izdelek --</option>
+          {items.filter(i => i.store === "Tuš").map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name} {item.price ? `– ${item.price.toFixed(2)} €` : ""}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  </DialogBody>
+  <DialogFooter>
+    <Button variant="text" onClick={() => setTusDialogOpen(false)}>
+      Prekliči
+    </Button>
+    <Button
+      color="green"
+      onClick={async () => {
+        const updatedItems = currentList.items.map((item) => ({
+          ...item,
+          extraDiscount25Tus: selectedTusOption === "25on1" && item.id === selectedItemId25Tus,
+        }));
+
+        await updateDoc(doc(firestore, "users", user.uid, "lists", selectedListId), {
+          items: updatedItems,
+        });
+
+        setLists(prev =>
+          prev.map(list =>
+            list.id === selectedListId ? { ...list, items: updatedItems } : list
+          )
+        );
+
+        setTusDialogOpen(false);
+      }}
+    >
+      Shrani izbiro
+    </Button>
+  </DialogFooter>
+</Dialog>
+
+
       <Dialog open={pdfPreviewOpen} handler={() => setPdfPreviewOpen(false)}>
   <DialogHeader>Predogled PDF seznama</DialogHeader>
   <DialogBody>
@@ -576,6 +1040,7 @@ const itemsGroupedByStore = () => {
       <div className="h-20" />
     </>
   );
+  
 }
 
 export default ShoppingList;

@@ -269,12 +269,14 @@ useEffect(() => {
       }
 
       const newItem = {
-          id: Date.now(),
-          name: product.name,
-          amount: "",
-          done: false,
-          store: product.store || "",
-        };
+        id: Date.now(),
+        name: product.name,
+        amount: "",
+        done: false,
+        store: product.store || "",
+        price: parseFloat((product.actionPrice || product.price || "0").toString().replace(",", ".")) || 0,
+      };
+
 
       const updatedItems = [...existingItems, newItem];
       await updateDoc(ref, { items: updatedItems });
