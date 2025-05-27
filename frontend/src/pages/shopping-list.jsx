@@ -344,17 +344,17 @@ useEffect(() => {
     try {
       const res = await fetch(`http://localhost:3000/api/search?name=${encodeURIComponent(searchQuery)}`);
       const data = await res.json();
-       const sortedData = sortByUnitPrice(data); // <-- DODANO TUKAJ
-    setSearchResults(sortedData);             // <-- NAMESTO neposredno `data`
+       const sortedData = sortByUnitPrice(data); 
+    setSearchResults(sortedData);             
     } catch (err) {
       console.error("Napaka pri iskanju izdelkov:", err);
       setSearchResults([]);
     }
   };
 
-  fetchSearch(); // <- tukaj dejansko pokličeš funkcijo
+  fetchSearch(); 
 
-}, [searchQuery]); // <- odvisnost: ob spremembi iskalnega niza
+}, [searchQuery]); 
 
 const allItemNamesInOtherLists = new Set(
   lists
@@ -370,14 +370,15 @@ const saveItemFromSearch = async (product) => {
     return;
   }
 
- const newItem = {
+const newItem = {
   id: Date.now(),
   name: product.name,
   amount: "",
   done: false,
   store: product.store || "",
-  price: product.priceNum || 0,
+  price: product.priceNum ?? product.price ?? 0, 
 };
+
 
 
   const updatedItems = [...currentList.items, newItem];
@@ -403,6 +404,63 @@ const getStoreName = (image = "") => {
   const src = image.toLowerCase();
   return Object.entries(storeMap).find(([key]) => src.includes(key))?.[1] || "Trgovina";
 };
+
+const [localRecommendations, setLocalRecommendations] = useState([]);
+
+const fetchBestMatches = async (items) => {
+  const results = [];
+
+  for (const item of items) {
+    try {
+      const res = await fetch(
+        `http://localhost:3000/api/search?name=${encodeURIComponent(item.name)}`
+      );
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const best = sortByUnitPrice(data)[0];
+        results.push({
+          name: best.name,
+          price: best.priceNum,
+          store: best.store,
+          quantity: best.quantity,
+        });
+      }
+    } catch (err) {
+      console.error("Napaka pri iskanju za priporočilo:", item.name, err);
+    }
+  }
+
+  return results;
+};
+
+useEffect(() => {
+  const generateAndFetchRecommendations = async () => {
+    if (!user || !lists.length) return;
+
+    const itemMap = new Map();
+    lists.forEach(list => {
+      if (list.id === selectedListId) return;
+      (list.items || []).forEach(item => {
+        const key = item.name?.trim();
+        if (!key) return;
+        const count = itemMap.get(key)?.count || 0;
+        itemMap.set(key, { name: key, count: count + 1 });
+      });
+    });
+
+    const topItems = Array.from(itemMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    const detailed = await fetchBestMatches(topItems);
+    setLocalRecommendations(detailed);
+  };
+
+  generateAndFetchRecommendations();
+}, [user, lists, selectedListId]);
+
+const [showRecommendations, setShowRecommendations] = useState(false);
+
 
   return (
     <>
@@ -612,6 +670,57 @@ const getStoreName = (image = "") => {
                 </div>
 
               </div>
+{localRecommendations.length > 0 && currentList && (
+  <div className="max-w-3xl mx-auto mt-12 px-4">
+    <button
+      onClick={() => setShowRecommendations(prev => !prev)}
+      className="text-left w-full"
+    >
+      <Typography variant="h5" className="mb-4 cursor-pointer text-blue-800 hover:underline">
+        Priporočeni izdelki {showRecommendations ? "▲" : "▼"}
+      </Typography>
+    </button>
+
+    {showRecommendations && (
+      <ul className="space-y-2">
+        {localRecommendations.map((item, index) => {
+          const alreadyInList = currentList.items.some(i => i.name === item.name);
+          return (
+            <li
+              key={index}
+              className="flex justify-between items-center p-2 bg-gray-100 rounded shadow-sm"
+            >
+              <div>
+                <span className="font-semibold">{item.name}</span>{" "}
+                {item.store && (
+                  <span className="text-gray-600 ml-1">({item.store})</span>
+                )}
+                {item.quantity && (
+                  <span className="text-sm text-gray-500 ml-1">
+                    ({item.quantity})
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-green-700">{item.price.toFixed(2)} €</span>
+                {!alreadyInList ? (
+                  <Button
+                    size="sm"
+                    onClick={() => saveItemFromSearch(item)}
+                  >
+                    Dodaj
+                  </Button>
+                ) : (
+                  <span className="text-xs text-gray-500 italic">že v seznamu</span>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+  </div>
+)}
 
              {/* Seznam izdelkov */}
     {currentList.items.length === 0 ? (
@@ -1028,182 +1137,180 @@ const getStoreName = (image = "") => {
         })}
       </div>
     )}
-
-
             </CardBody>
           </Card>
         </div>
     
       )}
-<Dialog open={mercatorDialogOpen} handler={() => setMercatorDialogOpen(false)} size="sm">
-  <DialogHeader>Izberi Mercator popust</DialogHeader>
-  <DialogBody className="space-y-4">
-    <div>
-      <label className="flex items-center gap-2">
-        <input
-          type="radio"
-          value="pension"
-          checked={selectedMercatorOption === "pension"}
-          onChange={() => setSelectedMercatorOption("pension")}
-        />
-        10 % upokojenski popust
-      </label>
-    </div>
-    <div>
-      <label className="flex items-center gap-2">
-        <input
-          type="radio"
-          value="25on1"
-          checked={selectedMercatorOption === "25on1"}
-          onChange={() => setSelectedMercatorOption("25on1")}
-        />
-        25 % popust na en izdelek
-      </label>
-      {selectedMercatorOption === "25on1" && (
-        <select
-          value={selectedItemId25 || ""}
-          onChange={(e) => setSelectedItemId25(Number(e.target.value))}
-          className="mt-2 block w-full border px-2 py-1 rounded"
+    <Dialog open={mercatorDialogOpen} handler={() => setMercatorDialogOpen(false)} size="sm">
+      <DialogHeader>Izberi Mercator popust</DialogHeader>
+      <DialogBody className="space-y-4">
+        <div>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              value="pension"
+              checked={selectedMercatorOption === "pension"}
+              onChange={() => setSelectedMercatorOption("pension")}
+            />
+            10 % upokojenski popust
+          </label>
+        </div>
+        <div>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              value="25on1"
+              checked={selectedMercatorOption === "25on1"}
+              onChange={() => setSelectedMercatorOption("25on1")}
+            />
+            25 % popust na en izdelek
+          </label>
+          {selectedMercatorOption === "25on1" && (
+            <select
+              value={selectedItemId25 || ""}
+              onChange={(e) => setSelectedItemId25(Number(e.target.value))}
+              className="mt-2 block w-full border px-2 py-1 rounded"
+            >
+              <option value="">-- Izberi izdelek --</option>
+              {items.filter(i => i.store === "Mercator").map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name} {item.price ? `– ${item.price.toFixed(2)} €` : ""}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      </DialogBody>
+      <DialogFooter>
+        <Button variant="text" onClick={() => setMercatorDialogOpen(false)}>
+          Prekliči
+        </Button>
+        <Button
+          color="blue"
+          onClick={async () => {
+            setIsPensioner(selectedMercatorOption === "pension");
+
+            // nastavi 25% na izbrani izdelek (ostale počisti)
+            const updatedItems = currentList.items.map((item) => {
+              return {
+                ...item,
+                extraDiscount25: selectedMercatorOption === "25on1" && item.id === selectedItemId25,
+              };
+            });
+
+            await updateDoc(doc(firestore, "users", user.uid, "lists", selectedListId), {
+              items: updatedItems,
+            });
+
+            setLists(prev =>
+              prev.map(list =>
+                list.id === selectedListId ? { ...list, items: updatedItems } : list
+              )
+            );
+
+            setMercatorDialogOpen(false);
+          }}
         >
-          <option value="">-- Izberi izdelek --</option>
-          {items.filter(i => i.store === "Mercator").map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name} {item.price ? `– ${item.price.toFixed(2)} €` : ""}
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
-  </DialogBody>
-  <DialogFooter>
-    <Button variant="text" onClick={() => setMercatorDialogOpen(false)}>
-      Prekliči
-    </Button>
-    <Button
-      color="blue"
-      onClick={async () => {
-        setIsPensioner(selectedMercatorOption === "pension");
+          Shrani izbiro
+        </Button>
+      </DialogFooter>
+    </Dialog>
+    <Dialog open={tusDialogOpen} handler={() => setTusDialogOpen(false)} size="sm">
+      <DialogHeader>Izberi Tuš popust</DialogHeader>
+      <DialogBody className="space-y-4">
+        <div>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              value="club"
+              checked={selectedTusOption === "club"}
+              onChange={() => setSelectedTusOption("club")}
+            />
+            10 % popust za člane Tuš kluba (ob ponedeljkih)
+          </label>
+        </div>
+        <div>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              value="25on1"
+              checked={selectedTusOption === "25on1"}
+              onChange={() => setSelectedTusOption("25on1")}
+            />
+            25 % popust na en izdelek (ob torkih in četrtkih)
+          </label>
+          {selectedTusOption === "25on1" && (
+            <select
+              value={selectedItemId25Tus || ""}
+              onChange={(e) => setSelectedItemId25Tus(Number(e.target.value))}
+              className="mt-2 block w-full border px-2 py-1 rounded"
+            >
+              <option value="">-- Izberi izdelek --</option>
+              {items.filter(i => i.store === "Tuš").map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name} {item.price ? `– ${item.price.toFixed(2)} €` : ""}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      </DialogBody>
+      <DialogFooter>
+        <Button variant="text" onClick={() => setTusDialogOpen(false)}>
+          Prekliči
+        </Button>
+        <Button
+          color="green"
+          onClick={async () => {
+            const updatedItems = currentList.items.map((item) => ({
+              ...item,
+              extraDiscount25Tus: selectedTusOption === "25on1" && item.id === selectedItemId25Tus,
+            }));
 
-        // nastavi 25% na izbrani izdelek (ostale počisti)
-        const updatedItems = currentList.items.map((item) => {
-          return {
-            ...item,
-            extraDiscount25: selectedMercatorOption === "25on1" && item.id === selectedItemId25,
-          };
-        });
+            await updateDoc(doc(firestore, "users", user.uid, "lists", selectedListId), {
+              items: updatedItems,
+            });
 
-        await updateDoc(doc(firestore, "users", user.uid, "lists", selectedListId), {
-          items: updatedItems,
-        });
+            setLists(prev =>
+              prev.map(list =>
+                list.id === selectedListId ? { ...list, items: updatedItems } : list
+              )
+            );
 
-        setLists(prev =>
-          prev.map(list =>
-            list.id === selectedListId ? { ...list, items: updatedItems } : list
-          )
-        );
-
-        setMercatorDialogOpen(false);
-      }}
-    >
-      Shrani izbiro
-    </Button>
-  </DialogFooter>
-</Dialog>
-<Dialog open={tusDialogOpen} handler={() => setTusDialogOpen(false)} size="sm">
-  <DialogHeader>Izberi Tuš popust</DialogHeader>
-  <DialogBody className="space-y-4">
-    <div>
-      <label className="flex items-center gap-2">
-        <input
-          type="radio"
-          value="club"
-          checked={selectedTusOption === "club"}
-          onChange={() => setSelectedTusOption("club")}
-        />
-        10 % popust za člane Tuš kluba (ob ponedeljkih)
-      </label>
-    </div>
-    <div>
-      <label className="flex items-center gap-2">
-        <input
-          type="radio"
-          value="25on1"
-          checked={selectedTusOption === "25on1"}
-          onChange={() => setSelectedTusOption("25on1")}
-        />
-        25 % popust na en izdelek (ob torkih in četrtkih)
-      </label>
-      {selectedTusOption === "25on1" && (
-        <select
-          value={selectedItemId25Tus || ""}
-          onChange={(e) => setSelectedItemId25Tus(Number(e.target.value))}
-          className="mt-2 block w-full border px-2 py-1 rounded"
+            setTusDialogOpen(false);
+          }}
         >
-          <option value="">-- Izberi izdelek --</option>
-          {items.filter(i => i.store === "Tuš").map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name} {item.price ? `– ${item.price.toFixed(2)} €` : ""}
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
-  </DialogBody>
-  <DialogFooter>
-    <Button variant="text" onClick={() => setTusDialogOpen(false)}>
-      Prekliči
-    </Button>
-    <Button
-      color="green"
-      onClick={async () => {
-        const updatedItems = currentList.items.map((item) => ({
-          ...item,
-          extraDiscount25Tus: selectedTusOption === "25on1" && item.id === selectedItemId25Tus,
-        }));
-
-        await updateDoc(doc(firestore, "users", user.uid, "lists", selectedListId), {
-          items: updatedItems,
-        });
-
-        setLists(prev =>
-          prev.map(list =>
-            list.id === selectedListId ? { ...list, items: updatedItems } : list
-          )
-        );
-
-        setTusDialogOpen(false);
-      }}
-    >
-      Shrani izbiro
-    </Button>
-  </DialogFooter>
-</Dialog>
+          Shrani izbiro
+        </Button>
+      </DialogFooter>
+    </Dialog>
 
 
-      <Dialog open={pdfPreviewOpen} handler={() => setPdfPreviewOpen(false)}>
-  <DialogHeader>Predogled PDF seznama</DialogHeader>
-  <DialogBody>
-    <Textarea
-      rows={10}
-      value={pdfText}
-      onChange={(e) => setPdfText(e.target.value)}
-      className="font-mono"
-    />
-  </DialogBody>
-  <DialogFooter>
-    <Button variant="text" color="gray" onClick={() => setPdfPreviewOpen(false)}>
-      Prekliči
-    </Button>
-    <Button color="red" onClick={downloadEditedPdf}>
-      Prenesi PDF
-    </Button>
-  </DialogFooter>
-</Dialog>
+          <Dialog open={pdfPreviewOpen} handler={() => setPdfPreviewOpen(false)}>
+      <DialogHeader>Predogled PDF seznama</DialogHeader>
+      <DialogBody>
+        <Textarea
+          rows={10}
+          value={pdfText}
+          onChange={(e) => setPdfText(e.target.value)}
+          className="font-mono"
+        />
+      </DialogBody>
+      <DialogFooter>
+        <Button variant="text" color="gray" onClick={() => setPdfPreviewOpen(false)}>
+          Prekliči
+        </Button>
+        <Button color="red" onClick={downloadEditedPdf}>
+          Prenesi PDF
+        </Button>
+      </DialogFooter>
+    </Dialog>
 
-      <div className="h-20" />
-    </>
-  );
-  
-}
+          <div className="h-20" />
+        </>
+      );
+      
+    }
 
 export default ShoppingList;
