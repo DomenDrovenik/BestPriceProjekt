@@ -18,7 +18,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "firebase": "^11.7.1",
-    "firebase-admin": "^13.3.0",
+    "firebase-admin": "^13.4.0",
     "fs-extra": "^11.3.0",
     "fuse.js": "^7.1.0",
     "jest": "^29.7.0",
@@ -30,6 +30,7 @@
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^5.2.133",
     "playwright": "^1.52.0",
-    "puppeteer": "^24.8.2"
+    "puppeteer": "^24.8.2",
+    "resend": "^4.5.1"
   }
 }

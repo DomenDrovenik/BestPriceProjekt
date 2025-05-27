@@ -206,7 +206,10 @@ function parseDateDM(s) {
   const pdfDir = await downloadPdfs(links);
 
   console.log("3) Launching browser…");
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
   const slugs = links.map((u) => path.basename(new URL(u).pathname, ".pdf"));
   const imagesMap = {};
   for (const slug of slugs) {

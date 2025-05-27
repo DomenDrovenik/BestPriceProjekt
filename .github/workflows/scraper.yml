@@ -26,3 +26,6 @@ jobs:
 
       - name: Run all scrapers
         run: cd backend && npm run scrape
+
+      - name: Run priceAlert
+        run: cd backend && node priceAlert.js

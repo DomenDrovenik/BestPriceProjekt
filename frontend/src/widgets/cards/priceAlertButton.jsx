@@ -44,6 +44,7 @@ export function PriceAlertButton({ product }) {
         currentPrice: product.actionPrice ?? product.price,
         createdAt:    serverTimestamp(),
         triggered:    false,
+        notified:     false,
       });
       setOpen(false);
       setThreshold("");
