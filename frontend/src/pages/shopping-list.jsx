@@ -279,6 +279,45 @@ const storeDiscounts = {
   }
 };
 
+// Pretvori npr. "500 g", "1 kg", "750 ml", "1.5 l" v številsko vrednost v kg ali l
+function normalizeAmount(quantity) {
+  if (!quantity || typeof quantity !== "string") return null;
+
+  const match = quantity.match(/([\d.,]+)\s*(g|kg|ml|l)/i);
+  if (!match) return null;
+
+  let [_, numStr, unit] = match;
+  let amount = parseFloat(numStr.replace(",", "."));
+  if (isNaN(amount)) return null;
+
+  unit = unit.toLowerCase();
+  if (unit === "g") return amount / 1000;
+  if (unit === "ml") return amount / 1000;
+  if (unit === "kg" || unit === "l") return amount;
+
+  return null;
+}
+
+// Glavna funkcija za razvrščanje po ceni na enoto
+function sortByUnitPrice(products) {
+  return [...products].sort((a, b) => {
+    const aQty = normalizeAmount(a.quantity);
+    const bQty = normalizeAmount(b.quantity);
+
+    const aPrice = parseFloat(a.actionPrice || a.price || "0");
+    const bPrice = parseFloat(b.actionPrice || b.price || "0");
+
+    const aPerUnit = aQty ? aPrice / aQty : Infinity;
+    const bPerUnit = bQty ? bPrice / bQty : Infinity;
+
+    if (aPerUnit !== bPerUnit) return aPerUnit - bPerUnit;
+
+    // če imata enako €/kg, primerjaj skupno ceno kot fallback
+    return aPrice - bPrice;
+  });
+}
+
+
 const [isPensioner, setIsPensioner] = useState(false);
 const itemsWith25 = items.filter(i => i.extraDiscount25);
 const totalRaw = items.reduce((sum, i) => sum + i.price, 0);
@@ -292,6 +331,78 @@ const [selectedTusOption, setSelectedTusOption] = useState("none"); // 'none' | 
 const [selectedItemId25Tus, setSelectedItemId25Tus] = useState(null);
 
 
+const [searchResults, setSearchResults] = useState([]);
+const [searchQuery, setSearchQuery] = useState("");
+
+useEffect(() => {
+  const fetchSearch = async () => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/search?name=${encodeURIComponent(searchQuery)}`);
+      const data = await res.json();
+       const sortedData = sortByUnitPrice(data); // <-- DODANO TUKAJ
+    setSearchResults(sortedData);             // <-- NAMESTO neposredno `data`
+    } catch (err) {
+      console.error("Napaka pri iskanju izdelkov:", err);
+      setSearchResults([]);
+    }
+  };
+
+  fetchSearch(); // <- tukaj dejansko pokličeš funkcijo
+
+}, [searchQuery]); // <- odvisnost: ob spremembi iskalnega niza
+
+const allItemNamesInOtherLists = new Set(
+  lists
+    .filter((list) => list.id !== selectedListId)
+    .flatMap((list) => list.items.map((item) => item.name.trim().toLowerCase()))
+);
+
+const saveItemFromSearch = async (product) => {
+  if (!user || !currentList) return;
+
+  if (currentList.items.some(item => item.name === product.name)) {
+    alert("Ta izdelek je že v seznamu.");
+    return;
+  }
+
+ const newItem = {
+  id: Date.now(),
+  name: product.name,
+  amount: "",
+  done: false,
+  store: product.store || "",
+  price: product.priceNum || 0,
+};
+
+
+  const updatedItems = [...currentList.items, newItem];
+  await updateDoc(doc(firestore, "users", user.uid, "lists", selectedListId), {
+    items: updatedItems,
+  });
+
+  setLists((prev) =>
+    prev.map((list) =>
+      list.id === selectedListId ? { ...list, items: updatedItems } : list
+    )
+  );
+};
+const storeMap = {
+  merkator: "Mercator",
+  jager: "Jager",
+  tus: "Tuš",
+  lidl: "Lidl",
+  hofer: "Hofer"
+};
+
+const getStoreName = (image = "") => {
+  const src = image.toLowerCase();
+  return Object.entries(storeMap).find(([key]) => src.includes(key))?.[1] || "Trgovina";
+};
 
   return (
     <>
@@ -410,6 +521,57 @@ const [selectedItemId25Tus, setSelectedItemId25Tus] = useState(null);
               </div>
 
               {/* Vnos izdelka */}
+              {/* Iskalnik – nova vrstica nad vnosnim poljem */}
+              <div className="w-full relative">
+        <Input
+          size="lg"
+          label=""
+          labelProps={{ className: "hidden" }}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Išči izdelek po trgovinah (npr. Coca-Cola)"
+          className="w-full"
+        />
+
+      {searchQuery.length > 1 && searchResults.length > 0 && (
+      <ul className="absolute z-20 bg-white border rounded shadow mt-1 w-full max-h-60 overflow-auto">
+      {searchResults.slice(0, 10).map((product, index) => {
+      const isInOtherLists = allItemNamesInOtherLists.has(product.name.trim().toLowerCase());
+
+  return (
+    <li
+      key={product._id}
+      className="p-2 hover:bg-gray-100 cursor-pointer text-sm border-b last:border-b-0"
+      onClick={() => {
+        setNewItemName(product.name);
+        setNewItemAmount("");
+        setSearchQuery("");
+        setSearchResults([]);
+        saveItemFromSearch(product);
+      }}
+    >
+      <div className="font-semibold flex justify-between items-center">
+        {product.name}
+        <div className="flex flex-col items-end text-xs ml-2">
+          {index === 0 && (
+            <span className="text-green-600 font-bold">najcenejše</span>
+          )}
+          {isInOtherLists && (
+            <span className="text-red-500 italic">večkrat že dodano</span>
+          )}
+        </div>
+      </div>
+      <div className="text-xs text-gray-600">
+        {product.store} – {product.priceNum.toFixed(2)} €{" "}
+        {product.quantity && `(${product.quantity})`}
+      </div>
+    </li>
+  );
+})}
+
+            </ul>
+          )}
+        </div>
               <div className="flex flex-col sm:flex-row gap-2 items-center w-full">
                 <div className={`w-full sm:w-[50%] ${editingItemId ? "bg-blue-50" : ""}`}>
                   <Input
@@ -448,6 +610,7 @@ const [selectedItemId25Tus, setSelectedItemId25Tus] = useState(null);
                     {editingItemId ? "Posodobi" : "Dodaj"}
                   </Button>
                 </div>
+
               </div>
 
              {/* Seznam izdelkov */}

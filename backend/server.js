@@ -468,6 +468,35 @@ app.delete("/api/products/:id/comments/:userId", async (req, res) => {
   }
 });
 
+app.get("/api/search", async (req, res) => {
+  const { name } = req.query;
+  if (!name || name.length < 2) return res.status(400).json([]);
+
+  const collections = [
+    { col: tusCollection, store: "Tuš" },
+    { col: merkatorCollection, store: "Mercator" },
+    { col: jagerCollection, store: "Jager" },
+    { col: lidlCollection, store: "Lidl" },
+    { col: hoferCollection, store: "Hofer" },
+  ];
+
+  const results = [];
+
+  for (const { col, store } of collections) {
+    const item = await findBestWithFuse(col, name);
+    if (item) {
+      results.push({
+        ...item,
+        store,
+        priceNum: parseFloat((item.actionPrice || item.price || "0").toString().replace(",", ".")),
+      });
+    }
+  }
+
+  res.json(results.slice(0, 10)); // vrni največ 10 zadetkov
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   connectToMongoDB();
