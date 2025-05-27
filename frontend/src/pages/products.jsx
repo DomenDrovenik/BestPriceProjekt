@@ -36,14 +36,6 @@ export function Products() {
   const [sortBy, setSortBy] = useState("");
   const [minRating, setMinRating] = useState(0);
 
- const storeMap = {
-  merkator: "Mercator",
-  jager: "Jager",
-  tus: "Tuš",
-  lidl: "Lidl",
-  hofer: "Hofer"
-};
-
 const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   const [searchParams] = useSearchParams();
@@ -55,6 +47,13 @@ const [initialLoadDone, setInitialLoadDone] = useState(false);
     }
   }, [searchParams]);
 
+const storeToEndpoint = {
+  "Mercator": "merkator",
+  "Tuš": "tus",
+  "Jager": "jager",
+  "Lidl": "lidl",
+  "Hofer": "hofer",
+};
 
   // Ob zagonu - naloži vse izdelke
   useEffect(() => {
@@ -62,23 +61,17 @@ const [initialLoadDone, setInitialLoadDone] = useState(false);
     try {
       const res = await fetch("http://localhost:3000/api/all-products");
       const data = await res.json();
-      const enriched = data.map((p) => {
-        const source = p.image?.toLowerCase() || "";
-        const store = Object.entries(storeMap).find(([key]) =>
-          source.includes(key)
-        )?.[1] || "Trgovina";
-        
-        // Calculate average rating
-        const avgRating = p.comments && p.comments.length > 0 
-          ? p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length
-          : 0;
-        
-        return { 
-          ...p, 
-          store,
-          avgRating: parseFloat(avgRating.toFixed(1)) 
-        };
-      });
+     const enriched = data.map((p) => {
+      const avgRating = p.comments && p.comments.length > 0
+        ? Number(
+            (
+              p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length
+            ).toFixed(1)
+          )
+        : 0;
+      return { ...p, avgRating };
+    });
+
       setProducts(enriched);
       setInitialLoadDone(true);
     } catch (error) {
@@ -100,16 +93,21 @@ useEffect(() => {
     try {
       const allData = await Promise.all(
         selectedStores.map(async (storeKey) => {
-          const res = await fetch(`http://localhost:3000/${storeKey}`);
+const endpoint = storeToEndpoint[storeKey];
+const res = await fetch(`http://localhost:3000/${endpoint}`);
           const data = await res.json();
-          return data.map((p) => ({ 
-            ...p, 
-            store: storeMap[storeKey],
-            
-            avgRating: p.comments && p.comments.length > 0 
-              ? parseFloat(p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length).toFixed(1)
-              : 0
-          }));
+         return data.map((p) => ({
+        ...p,
+        avgRating: p.comments && p.comments.length > 0 
+          ? Number(
+              (
+                p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length
+              ).toFixed(1)
+            )
+          : 0
+      }));
+
+
         })
       );
       setProducts(allData.flat());
@@ -140,13 +138,12 @@ useEffect(() => {
     setCurrentPage(1);
   }, [search, selectedCats, priceRange, minRating, sortBy]);
 
-  const toggleStore = (storeKey) => {
-    setSelectedStores((prev) =>
-      prev.includes(storeKey)
-        ? prev.filter((s) => s !== storeKey)
-        : [...prev, storeKey]
-    );
-  };
+  const toggleStore = (store) => {
+  setSelectedStores((prev) =>
+    prev.includes(store) ? prev.filter((s) => s !== store) : [...prev, store]
+  );
+};
+
 
   const toggleCat = (cat) => {
     setSelectedCats((prev) =>
@@ -184,18 +181,19 @@ useEffect(() => {
 
   const categorize = (product) => normalizeCategory(product.category, product.subcategory);
 
-  const filtered = products
-    .filter((p) => p.name?.toLowerCase().includes(search.toLowerCase()))
-    .filter((p) => {
-      const cat = categorize(p);
-      return selectedCats.length === 0 || selectedCats.includes(cat);
-    })
-    .filter((p) => {
-      const cena = parseFloat(p.price?.toString().replace(",", "."));
-      return cena >= priceRange[0] && cena <= priceRange[1];
-    })
-    .filter((p) => !onlyDiscounted || p.actionPrice != null)
-    .filter((p) => p.avgRating >= minRating)
+const filtered = products
+  .filter((p) => p.name?.toLowerCase().includes(search.toLowerCase()))
+  .filter((p) => {
+    const cat = categorize(p);
+    return selectedCats.length === 0 || selectedCats.includes(cat);
+  })
+  .filter((p) => {
+    const cena = parseFloat(p.price?.toString().replace(",", "."));
+    return cena >= priceRange[0] && cena <= priceRange[1];
+  })
+  .filter((p) => selectedStores.length === 0 || selectedStores.includes(p.store)) // <-- TO DODAŠ
+  .filter((p) => !onlyDiscounted || p.actionPrice != null)
+  .filter((p) => p.avgRating >= minRating)
     .sort((a, b) => {
       if (sortBy === "rating-desc") return b.avgRating - a.avgRating;
       if (sortBy === "rating-asc") return a.avgRating - b.avgRating;
@@ -350,9 +348,9 @@ useEffect(() => {
               <div>
                 <Typography variant="small" className="block mb-2 font-medium">Trgovci</Typography>
                 <div className="flex flex-col gap-1.5">
-                  {Object.entries(storeMap).map(([key, label]) => (
-                    <Checkbox key={key} label={label} checked={selectedStores.includes(key)} onChange={() => toggleStore(key)} />
-                  ))}
+                  {["Mercator", "Tuš", "Jager", "Lidl", "Hofer"].map((store) => (
+                  <Checkbox key={store} label={store} checked={selectedStores.includes(store)} onChange={() => toggleStore(store)} />
+                ))}
                 </div>
               </div>
               

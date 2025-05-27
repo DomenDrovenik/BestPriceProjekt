@@ -54,7 +54,7 @@ async function connectToMongoDB() {
 app.get("/tus", async (req, res) => {
   try {
     const tusData = await tusCollection.find({}).toArray();
-    res.status(200).json(tusData);
+    res.status(200).json(tusData.map(p => ({ ...p, store: "Tuš" })));
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -64,7 +64,7 @@ app.get("/tus", async (req, res) => {
 app.get("/merkator", async (req, res) => {
   try {
     const merkatorData = await merkatorCollection.find({}).toArray();
-    res.status(200).json(merkatorData);
+    res.status(200).json(merkatorData.map(p => ({ ...p, store: "Mercator" })));
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -74,7 +74,7 @@ app.get("/merkator", async (req, res) => {
 app.get("/jager", async (req, res) => {
   try {
     const jagerData = await jagerCollection.find({}).toArray();
-    res.status(200).json(jagerData);
+    res.status(200).json(jagerData.map(p => ({ ...p, store: "Jager" })));
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -84,7 +84,7 @@ app.get("/jager", async (req, res) => {
 app.get("/hofer", async (req, res) => {
   try {
     const hoferData = await hoferCollection.find({}).toArray();
-    res.status(200).json(hoferData);
+    res.status(200).json(hoferData.map(p => ({ ...p, store: "Hofer" })));
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -94,7 +94,7 @@ app.get("/hofer", async (req, res) => {
 app.get("/lidl", async (req, res) => {
   try {
     const lidlData = await lidlCollection.find({}).toArray();
-    res.status(200).json(lidlData);
+    res.status(200).json(lidlData.map(p => ({ ...p, store: "Lidl" })));
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -103,14 +103,15 @@ app.get("/lidl", async (req, res) => {
 
 app.get("/api/all-products", async (req, res) => {
   try {
-    const tus = await tusCollection.find({}).toArray();
-    const merkator = await merkatorCollection.find({}).toArray();
-    const jager = await jagerCollection.find({}).toArray();
-    const lidl = await lidlCollection.find({}).toArray();
-    const hofer = await hoferCollection.find({}).toArray();
+   const tus = (await tusCollection.find({}).toArray()).map(p => ({ ...p, store: "Tuš" }));
+  const merkator = (await merkatorCollection.find({}).toArray()).map(p => ({ ...p, store: "Mercator" }));
+  const jager = (await jagerCollection.find({}).toArray()).map(p => ({ ...p, store: "Jager" }));
+  const lidl = (await lidlCollection.find({}).toArray()).map(p => ({ ...p, store: "Lidl" }));
+  const hofer = (await hoferCollection.find({}).toArray()).map(p => ({ ...p, store: "Hofer" }));
 
-    const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
-    res.status(200).json(all);
+  const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
+  res.status(200).json(all);
+
   } catch (error) {
     console.error("Napaka pri pridobivanju vseh izdelkov:", error);
     res.status(500).json({ message: "Napaka na strežniku" });
