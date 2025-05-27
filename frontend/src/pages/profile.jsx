@@ -3,7 +3,7 @@ import { Typography, Button } from '@material-tailwind/react';
 import { MapPinIcon, BriefcaseIcon, BuildingLibraryIcon } from '@heroicons/react/24/solid';
 import { Footer, ProfileHeader, ProfileStats, ProfilePreferences, PriceAlerts, ShoppingLists } from '@/widgets/layout';
 import { auth, firestore } from '../firebase.js';
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, deleteDoc, updateDoc} from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export function Profile() {
@@ -46,6 +46,35 @@ export function Profile() {
     return <div className="flex h-screen items-center justify-center"><Typography>Loading profile…</Typography></div>;
   }
 
+  const handleRemove = async (alertId) => {
+    const user = auth.currentUser;
+    await deleteDoc(doc(firestore, "users", user.uid, "priceAlerts", alertId));
+    setAlerts(prev => prev.filter(a => a.id !== alertId));
+  };
+  
+  const handleReset = async (alertId) => {
+    const user = auth.currentUser;
+    const ref = doc(firestore, "users", user.uid, "priceAlerts", alertId);
+    await updateDoc(ref, { triggered: false, triggeredAt: null });
+    setAlerts(prev =>
+      prev.map(a => a.id === alertId ? { ...a, triggered: false, triggeredAt: null } : a)
+    );
+  };
+
+  const handleUpdate = async (alertId, newPrice) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    const ref = doc(firestore, "users", user.uid, "priceAlerts", alertId);
+    await updateDoc(ref, { targetPrice: newPrice });
+    setAlerts(prev =>
+      prev.map(a =>
+        a.id === alertId ? { ...a, targetPrice: newPrice } : a
+      )
+    );
+  };
+
+
+
   const fullName = `${profile.name} ${profile.surname}`.trim() || 'No Name';
 
   return (
@@ -57,7 +86,13 @@ export function Profile() {
           <ProfileStats totalSavings={stats.totalSavings} comparisons={stats.comparisons} alerts={stats.alertsTriggered} />
           <div className="mt-6 space-y-4">
             <ProfilePreferences stores={favorites.stores} categories={favorites.categories} />
-            <PriceAlerts alerts={alerts} onEdit={() => alert('Edit alerts')} />
+            <PriceAlerts
+        alerts={alerts}
+        onRemove={handleRemove}
+        onReset={handleReset}
+        onUpdate={handleUpdate}
+      />
+
             <ShoppingLists lists={lists} onCreate={() => alert('Create list')} />
           </div>
         </div>

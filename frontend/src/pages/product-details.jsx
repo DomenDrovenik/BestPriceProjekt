@@ -94,7 +94,10 @@ useEffect(() => {
           // 1) Fetch product, which now includes previousPrices array
           const resP = await fetch(`http://localhost:3000/api/products/${id}`);
           const dataP = await resP.json();
-          setProduct(dataP);
+          setProduct({
+               ...dataP,
+               id: dataP._id?.toString?.() || id,
+           });
   
           // 2) Use product.previousPrices directly
           const prev = dataP.previousPrices || [];
