@@ -1,4 +1,4 @@
-import { Home, Products, ProductDetails, Profile, SignIn, SignUp, ShoppingList } from "@/pages";
+import { Home, Products, ProductDetails, Profile, SignIn, SignUp, ShoppingList, Dashboard } from "@/pages";
 
 export const routes = [
   {
@@ -19,6 +19,11 @@ export const routes = [
     name: "Nakupovalni seznam",
     path: "/shopping-list",
     element: <ShoppingList />,
+  },
+  {
+    name: "Statistika",
+    path: "/dashboard",
+    element: <Dashboard />,
   },
   {
     path: "/sign-in",
