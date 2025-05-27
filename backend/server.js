@@ -35,6 +35,7 @@ let jagerCollection;
 let lidlCollection;
 let hoferCollection;
 
+let stores = [];
 async function connectToMongoDB() {
   try {
     await client.connect();
@@ -44,6 +45,15 @@ async function connectToMongoDB() {
     jagerCollection = db.collection("jagerproducts");
     lidlCollection = db.collection("lidl");
     hoferCollection = db.collection("hofer");
+
+    stores = [
+      { col: tusCollection,      label: "Tuš"     },
+      { col: merkatorCollection, label: "Mercator"},
+      { col: jagerCollection,    label: "Jager"   },
+      { col: lidlCollection,     label: "Lidl"    },
+      { col: hoferCollection,    label: "Hofer"   },
+    ];
+
     console.log("Connected to MongoDB!");
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
@@ -495,6 +505,79 @@ app.get("/api/search", async (req, res) => {
 
   res.json(results.slice(0, 10)); // vrni največ 10 zadetkov
 });
+
+
+// 1) Average prices
+app.get("/api/dashboard/average-prices", async (req, res) => {
+  try {
+    const avgData = [];
+    for (const { col, label } of stores) {
+      const [{ avgPrice = 0 } = {}] = await col.aggregate([
+        {
+          $project: {
+            priceNumeric: {
+              $cond: [
+                { $ne: ["$actionPrice", null] },
+                { $toDouble: "$actionPrice" },
+                { $toDouble: "$price" },
+              ],
+            },
+          },
+        },
+        { $group: { _id: null, avgPrice: { $avg: "$priceNumeric" } } },
+      ]).toArray();
+      avgData.push({ store: label, avgPrice });
+    }
+    res.json(avgData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Napaka pri izračunu povprečnih cen" });
+  }
+});
+
+// 2) Price trends
+app.get("/api/dashboard/price-trends", async (req, res) => {
+  try {
+    const dateMap = {};
+    const storeLabels = stores.map(s => s.label);
+
+    for (const { col, label } of stores) {
+      const docs = await col
+        .find({ previousPrices: { $exists: true, $ne: null } })
+        .project({ previousPrices: 1 })
+        .toArray();
+
+      docs.forEach(doc => {
+        (doc.previousPrices || []).forEach(({ date, price }) => {
+          const d = new Date(date).toISOString().slice(0,10);
+          dateMap[d] = dateMap[d] || { date: d };
+          dateMap[d][label] = dateMap[d][label] || [];
+          dateMap[d][label].push(parseFloat(price));
+        });
+      });
+    }
+
+    const data = Object.values(dateMap)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(entry => {
+        const out = { date: entry.date };
+        storeLabels.forEach(label => {
+          const arr = entry[label] || [];
+          out[label] = arr.length
+            ? arr.reduce((sum, v) => sum + v, 0) / arr.length
+            : null;
+        });
+        return out;
+      });
+
+    res.json({ data, stores: storeLabels });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Napaka pri izračunu trendov cen" });
+  }
+});
+
+
 
 
 app.listen(PORT, () => {
