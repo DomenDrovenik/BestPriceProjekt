@@ -445,10 +445,17 @@ const filtered = products
                   <Card key={index} className="overflow-hidden">
                     <CardHeader floated={false} className="h-36 flex items-center justify-center bg-white">
                       <img
-                        src={p.image?.startsWith("http") ? p.image : "/img/no-image.png"}
+                        src={
+                          p.image?.startsWith("http")
+                            ? p.image
+                            : p.store === "Hofer"
+                            ? "/img/HOFER.png"
+                            : "/img/no-image.png"
+                        }
                         alt={p.name}
                         className="max-h-28 w-auto object-contain"
                       />
+
                     </CardHeader>
                     <CardBody className="pb-4">
                       <Typography variant="h5" className="mb-2 font-bold">{p.name}</Typography>
