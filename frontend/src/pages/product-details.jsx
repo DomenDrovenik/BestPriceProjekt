@@ -99,12 +99,21 @@ useEffect(() => {
                id: dataP._id?.toString?.() || id,
            });
   
-          // 2) Use product.previousPrices directly
           const prev = dataP.previousPrices || [];
           const formatted = prev.map(({ date, price }) => ({
             date: new Date(date).toLocaleDateString("sl-SI"),
             price: parseFloat(price),
           }));
+
+          if (formatted.length === 1) {
+            const original = formatted[0];
+            const today = new Date();
+            formatted.push({
+              date: today.toLocaleDateString("sl-SI"),
+              price: original.price,
+            });
+          }
+
           setHistory(formatted);
   
           // 3) Comments remain fetched separately
