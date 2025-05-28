@@ -14,6 +14,11 @@ const pdfParse = require("pdf-parse");
 const { URL } = require("url");
 const Classifier = require("./classifier");
 const { getCollection, close } = require("./db");
+const { DOMMatrix, ImageData, Path2D } = require("canvas");
+
+global.DOMMatrix = DOMMatrix;
+global.ImageData = ImageData;
+global.Path2D = Path2D;
 
 async function extractTextPages(buffer) {
   // dinamični import ESM modula znotraj CommonJS
