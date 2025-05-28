@@ -13,7 +13,7 @@ import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { UserIcon } from "@heroicons/react/24/outline";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebase.js"; // adjust path
-import { doc, getDocs, collection } from "firebase/firestore";
+import { doc, getDocs, collection, onSnapshot } from "firebase/firestore";
 import { firestore } from "../../firebase.js";
 
 // your avatar component
@@ -48,15 +48,25 @@ export function Navbar({ brandName, routes, action }) {
 
   // useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (u) => {
+  const unsubscribe = onAuthStateChanged(auth, (u) => {
     setUser(u);
+
+    let alertsUnsubscribe = null;
+
     if (u) {
-      const alertsSnap = await getDocs(collection(firestore, 'users', u.uid, 'priceAlerts'));
-      const alerts = alertsSnap.docs.map(doc => doc.data());
-      const triggered = alerts.filter(a => a.triggered && !a.seen).length;
-      setTriggeredCount(triggered);
+      const alertsRef = collection(firestore, "users", u.uid, "priceAlerts");
+      alertsUnsubscribe = onSnapshot(alertsRef, (snapshot) => {
+        const alerts = snapshot.docs.map((doc) => doc.data());
+        const triggered = alerts.filter((a) => a.triggered && !a.seen).length;
+        setTriggeredCount(triggered);
+      });
     }
+
+    return () => {
+      if (alertsUnsubscribe) alertsUnsubscribe();
+    };
   });
+
   return unsubscribe;
 }, []);
 
