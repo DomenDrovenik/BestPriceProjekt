@@ -39,6 +39,7 @@ export function ProductDetails() {
     const { id } = useParams();
     const [product, setProduct] = useState(null);
     const [history, setHistory] = useState([]);
+    const [graphHistory,setGraphHistory] = useState([]);
     const [comments, setComments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [newComment, setNewComment] = useState("");
@@ -104,17 +105,19 @@ useEffect(() => {
             date: new Date(date).toLocaleDateString("sl-SI"),
             price: parseFloat(price),
           }));
+          setHistory(formatted);
 
-          if (formatted.length === 1) {
-            const original = formatted[0];
+          let graphData = [...formatted];
+          if (graphData.length === 1) {
+            const original = graphData[0];
             const today = new Date();
-            formatted.push({
+            graphData.push({
               date: today.toLocaleDateString("sl-SI"),
               price: original.price,
             });
           }
 
-          setHistory(formatted);
+          setGraphHistory(graphData);
   
           // 3) Comments remain fetched separately
           const resC = await fetch(`http://localhost:3000/api/products/${id}/comments`);
@@ -325,7 +328,7 @@ const handleDeleteComment = async (userId) => {
             Trend cen
           </Typography>
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={history}>
+            <LineChart data={graphHistory}>
               <XAxis dataKey="date" />
               <YAxis domain={["auto", "auto"]} />
               <Tooltip />

@@ -13,6 +13,8 @@ import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { UserIcon } from "@heroicons/react/24/outline";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebase.js"; // adjust path
+import { doc, getDocs, collection } from "firebase/firestore";
+import { firestore } from "../../firebase.js";
 
 // your avatar component
 function UserAvatar({ photoURL, alt, onClick }) {
@@ -41,9 +43,22 @@ export function Navbar({ brandName, routes, action }) {
   const [openNav, setOpenNav] = useState(false);
   const [user, setUser]     = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [triggeredCount, setTriggeredCount] = useState(0);
   const navigate = useNavigate();
 
-  useEffect(() => onAuthStateChanged(auth, setUser), []);
+  // useEffect(() => onAuthStateChanged(auth, setUser), []);
+  useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (u) => {
+    setUser(u);
+    if (u) {
+      const alertsSnap = await getDocs(collection(firestore, 'users', u.uid, 'priceAlerts'));
+      const alerts = alertsSnap.docs.map(doc => doc.data());
+      const triggered = alerts.filter(a => a.triggered && !a.seen).length;
+      setTriggeredCount(triggered);
+    }
+  });
+  return unsubscribe;
+}, []);
 
   useEffect(() => {
     const onResize = () => window.innerWidth >= 960 && setOpenNav(false);
@@ -106,11 +121,18 @@ export function Navbar({ brandName, routes, action }) {
           {user ? (
             // <-- custom dropdown
             <div className="relative">
-              <UserAvatar
-                photoURL={user.photoURL}
-                alt={user.displayName || "User"}
-                onClick={() => setMenuOpen((o) => !o)}
-              />
+              <div className="relative">
+  <UserAvatar
+    photoURL={user.photoURL}
+    alt={user.displayName || "User"}
+    onClick={() => setMenuOpen((o) => !o)}
+  />
+  {triggeredCount > 0 && (
+    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+      {triggeredCount}
+    </span>
+  )}
+</div>
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg z-50">
                   <button

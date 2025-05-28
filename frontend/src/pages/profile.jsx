@@ -46,6 +46,8 @@ export function Profile() {
     return <div className="flex h-screen items-center justify-center"><Typography>Loading profile…</Typography></div>;
   }
 
+  
+
   const handleRemove = async (alertId) => {
     const user = auth.currentUser;
     await deleteDoc(doc(firestore, "users", user.uid, "priceAlerts", alertId));
@@ -55,9 +57,9 @@ export function Profile() {
   const handleReset = async (alertId) => {
     const user = auth.currentUser;
     const ref = doc(firestore, "users", user.uid, "priceAlerts", alertId);
-    await updateDoc(ref, { triggered: false, triggeredAt: null });
+    await updateDoc(ref, { triggered: false, triggeredAt: null, notified:false, notifiedAt:null, seen:false });
     setAlerts(prev =>
-      prev.map(a => a.id === alertId ? { ...a, triggered: false, triggeredAt: null } : a)
+      prev.map(a => a.id === alertId ? { ...a, triggered: false, triggeredAt: null, notified:false, notifiedAt:null, seen:false } : a)
     );
   };
 
@@ -72,6 +74,17 @@ export function Profile() {
       )
     );
   };
+
+  const handleMarkAsSeen = async (alertId) => {
+  const user = auth.currentUser;
+  const ref = doc(firestore, "users", user.uid, "priceAlerts", alertId);
+  await updateDoc(ref, { seen: true });
+
+  setAlerts(prev =>
+    prev.map(a => a.id === alertId ? { ...a, seen: true } : a)
+  );
+};
+
 
 
 
@@ -91,6 +104,7 @@ export function Profile() {
         onRemove={handleRemove}
         onReset={handleReset}
         onUpdate={handleUpdate}
+        onSeen={handleMarkAsSeen}
       />
 
             <ShoppingLists lists={lists} onCreate={() => alert('Create list')} />

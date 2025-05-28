@@ -17,6 +17,7 @@ export function PriceAlerts({
   onRemove,  // callback za izbris
   onReset,   // callback za ponastavitev
   onUpdate,  // callback za urejanje targetPrice
+  onSeen,
 }) {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -50,6 +51,8 @@ export function PriceAlerts({
     setEditValue('');
   };
 
+  
+
   return (
     <>
       {/* Povzetek alarmov */}
@@ -80,9 +83,19 @@ export function PriceAlerts({
                   {a.productName} – {a.currentPrice.toFixed(2)} €{' '}
                   <small>({new Date(a.triggeredAt?.seconds * 1000).toLocaleString()})</small>
                 </span>
+                {a.triggered && !a.seen && (
+                  <Button 
+                    onClick={() => onSeen(a.id)}
+                    size="sm" variant="text"
+                  >
+                    Označi opaženo
+                  </Button>
+                )}
                 <Button size="sm" variant="text" onClick={() => onReset(a.id)}>
                   Reset
                 </Button>
+                
+                
               </div>
             ))
           ) : (

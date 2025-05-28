@@ -135,6 +135,8 @@ async function checkPriceAlerts() {
           .update({
             notified: true,
             notifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+            triggered: true,
+            currentPrice: Number(currentPrice),
           });
       }
     }
