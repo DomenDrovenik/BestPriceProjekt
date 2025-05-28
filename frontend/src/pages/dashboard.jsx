@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardBody, Typography } from '@material-tailwind/react'
 import AveragePriceBarChart from '@/widgets/cards/averagePriceBarChart';
 import PriceTrendLineChart from '@/widgets/cards/priceTrendLineChart';
+import BasicBasketChart from '@/widgets/cards/basicBasketChart';
+import { ExtendedBasketChart } from '@/widgets/cards';
+import { ArrowLeftRight } from 'lucide-react';
 
 
 
@@ -73,6 +76,25 @@ export function Dashboard() {
           </div>
         </div>
       </section>
+      <section className="container mx-auto py-8">
+      {/* Centeriran naslov */}
+      <div className="w-full flex justify-center mb-6">
+  <div className="flex items-center gap-2">
+    <ArrowLeftRight className="w-6 h-6 text-black-500" />
+    <Typography variant="h4">Primerjava cene košarice</Typography>
+  </div>
+</div>
+
+      {/* Dva stolpca z razmikom */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded shadow-sm p-4 h-[450px]">
+          <BasicBasketChart />
+        </div>
+        <div className="bg-white rounded shadow-sm p-4 h-[450px]">
+          <ExtendedBasketChart />
+        </div>
+      </div>
+    </section>
     </>
   );
 }

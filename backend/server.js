@@ -262,13 +262,18 @@ async function findBestWithFuse(col, query, limit = 1) {
     .split(/\s+/)
     .map((w) => w.trim())
     .filter((w) => w.length >= 3);
-  let prelim;
-  if (words.length) {
-    const orRegex = words.map((w) => ({ name: { $regex: w, $options: "i" } }));
-    prelim = await col.find({ $or: orRegex }).limit(100).toArray();
-  } else {
-    prelim = await col.find().limit(100).toArray();
-  }
+    let prelim;
+    if (words.length) {
+      const orRegex = words.map(w => {
+        const esc = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');  // pobegni vse posebne znake
+        return { name: { $regex: new RegExp(esc, 'i') } };
+      });
+      prelim = await col.find({ $or: orRegex }).limit(100).toArray();
+    } else {
+      prelim = await col.find().limit(100).toArray();
+    }
+  
+    if (!prelim.length) return null;
 
   if (!prelim.length) return null;
 
@@ -574,6 +579,103 @@ app.get("/api/dashboard/price-trends", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Napaka pri izračunu trendov cen" });
+  }
+});
+
+// Na vrhu datoteke, kjer deklariraš svoje kolekcije in stores:
+const basicItems = [
+  "pšenična bela moka, tip 500",
+  "beli kruh",
+  "testenine, polži majhni",
+  "goveje meso",
+  "svinjsko meso",
+  "piščančje meso",
+  "mleko (3,5 % mlečne maščobe)",
+  "tekoči jogurt (3,2 % mlečne maščobe)",
+  "poltrdi sir",
+  "maslo",
+  "jajca hlevske reje",
+  "jabolka",
+  "krompir",
+  "sončnično olje",
+  "beli sladkor 1kg",
+];
+const extendedItems = [
+  "pršut",
+  "piščančje hrenovke",
+  "kuhan pršut",
+  "panceta ali sušena slanina",
+  "piščančje meso",
+  "goveje meso",
+  "sir gavda",
+  "mocarela",
+  "sveže mleko",
+  "trajno polnomastno mleko",
+  "trajno pol posneto mleko",
+  "kisla smetana",
+  "jogurt",
+  "jajca",
+  "bel kruh",
+  "polbel kruh",
+  "bageta",
+  "kajzerica",
+  "žemlja",
+  "krompir",
+  "jabolka",
+  "korenje",
+  "banane",
+  "čebula",
+  "limone",
+  "sončnično olje",
+  "oljčno olje",
+  "maslo",
+];
+
+// Helper za en element: poišče v vsaki trgovini best match in izračuna avg
+async function fetchBasketItemPrices(itemName) {
+  const prices = [];
+  for (const { col, label: store } of stores) {
+    const doc = await findBestWithFuse(col, itemName);
+    if (doc) {
+      const price = doc.actionPrice != null
+        ? parseFloat(doc.actionPrice)
+        : parseFloat(doc.price);
+      prices.push({ store, price });
+    }
+  }
+  if (!prices.length) return null;
+  const avgPrice =
+    prices.reduce((sum, p) => sum + p.price, 0) / prices.length;
+  return { item: itemName, prices, avgPrice };
+}
+
+// Endpoint za osnovno košarico
+app.get("/api/basket/basic", async (req, res) => {
+  try {
+    const result = [];
+    for (const name of basicItems) {
+      const entry = await fetchBasketItemPrices(name);
+      if (entry) result.push(entry);
+    }
+    res.json(result);
+  } catch (err) {
+    console.error("Napaka pri basic basket:", err);
+    res.status(500).json({ message: "Napaka pri pridobivanju osnovne košarice" });
+  }
+});
+
+// Endpoint za razširjeno košarico
+app.get("/api/basket/extended", async (req, res) => {
+  try {
+    const result = [];
+    for (const name of extendedItems) {
+      const entry = await fetchBasketItemPrices(name);
+      if (entry) result.push(entry);
+    }
+    res.json(result);
+  } catch (err) {
+    console.error("Napaka pri extended basket:", err);
+    res.status(500).json({ message: "Napaka pri pridobivanju razširjene košarice" });
   }
 });
 

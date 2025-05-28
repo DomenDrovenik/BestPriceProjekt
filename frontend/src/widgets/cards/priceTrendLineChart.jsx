@@ -1,7 +1,7 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardBody, Typography } from '@material-tailwind/react';
-import { ChartLine } from 'lucide-react';
+import { ChartSpline } from 'lucide-react';
 
 // Prednastavljene barve za trgovine (po vrsti ali glede na ime)
 const defaultColors = [
@@ -15,7 +15,7 @@ const defaultColors = [
 const PriceTrendLineChart = ({ data, stores }) => (
   <Card>
     <CardHeader floated={false} shadow={false} className="flex items-center gap-2">
-      <ChartLine className="w-6 h-6 text-green-500" />
+      <ChartSpline className="w-6 h-6 text-green-500" />
       <Typography variant="h5" color="blue-gray">Trend cen skozi čas</Typography>
     </CardHeader>
     <CardBody className="px-0 pt-2">
