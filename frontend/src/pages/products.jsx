@@ -9,6 +9,7 @@ import {
   Checkbox,
 } from "@material-tailwind/react";
 import { PageTitle } from "@/widgets/layout";
+import { UpdatedBadge } from "@/widgets/cards";
 import { Link as RouterLink } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { categories } from "@/data/categories";
@@ -511,7 +512,8 @@ const filtered = products
 
                       <br />
                       <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
-                        Posodobljeno: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
+                        Cena posodobljena: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
+                        <UpdatedBadge updatedAt={p.updatedAt} />
                       </Typography>
                     </CardBody>
                   </Card>
