@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } f
 import { Card, CardHeader, CardBody, Typography } from '@material-tailwind/react';
 import { ChartSpline } from 'lucide-react';
 
-// Prednastavljene barve za trgovine (po vrsti ali glede na ime)
+// Prednastavljene barve za trgovine
 const defaultColors = [
   '#8884d8',  // violet
   '#82ca9d',  // green
@@ -36,10 +36,11 @@ const PriceTrendLineChart = ({ data, stores }) => (
               key={store}
               type="monotone"
               dataKey={store}
-              dot={false}
               name={store}
               stroke={defaultColors[index % defaultColors.length]}
               strokeWidth={2}
+              dot={false}
+              connectNulls  // <— tokrat dodano!
             />
           ))}
         </LineChart>
