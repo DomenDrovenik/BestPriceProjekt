@@ -189,31 +189,23 @@ const res = await fetch(`http://localhost:3000/${endpoint}`);
   };
 
   const normalizeCategory = (category, subcategory) => {
-    const cat = (category || "").toLowerCase();
-    const sub = (subcategory || "").toLowerCase();
-    if (cat.includes("sadje") || sub.includes("zelenjava")) return "Sadje in zelenjava";
-    if (cat.includes("mleko") || sub.includes("sir")) return "Mlečni izdelki";
-    if (cat.includes("jajca") || sub.includes("jajca")) return "Mlečni izdelki";
-    if (cat.includes("meso") || sub.includes("ribe")) return "Meso in ribe";
-    if (cat.includes("kruh") || sub.includes("toast")) return "Pekovski izdelki";
-    if (cat.includes("zamrznjena") || sub.includes("sladoled")) return "Zamrznjena hrana";
-    if (cat.includes("konzervirana") || sub.includes("konzerve")) return "Konzervirana živila";
-    if (cat.includes("olje") || sub.includes("sol")) return "Olja in maščobe";
-    if (cat.includes("testenine") || sub.includes("juhe")) return "Testenine, žita, juhe";
-    if (cat.includes("sladki") || cat.includes("sladkor")  || sub.includes("čokolada") ) return "Sladkor, sladkarije in prigrizki";
-    if (cat.includes("pijače") || sub.includes("sokovi")) return "Pijače";
-    if (cat.includes("bio") || sub.includes("zdrava")) return "Bio izdelki";
-    if (cat.includes("delikatesni") || sub.includes("pripravljene")) return "Pripravljene jedi";
-     if (sub.includes("zajtrk") || sub.includes("kosmiči") || sub.includes("marmelada") ||
-      sub.includes("namazi") || sub.includes("čaj") || sub.includes("kava") ||
-      sub.includes("maslo") || sub.includes("med") || sub.includes("nutella") ||
-      sub.includes("prepečenci") || sub.includes("toasti") || sub.includes("sirni namazi") ||
-      sub.includes("žitarice") || sub.includes("otroška hrana") || sub.includes("kakav") ||
-      sub.includes("sladki namazi")) return "Vse za zajtrk";
-    if (sub.includes("vse za peko")) return "Vse za peko";
-  if (sub.includes("tuja prehrana") || sub.includes("hrana tujih dežel")) return "Tuja prehrana";
-
-    return "Drugo";
+    const cat = (category || '').toLowerCase();
+    const sub = (subcategory || '').toLowerCase();
+    if (cat.includes('sadje') || sub.includes('zelenjava')) return 'Sadje in zelenjava';
+    if (cat.includes('mleko') || sub.includes('sir') || sub.includes('jogurt')) return 'Mlečni izdelki';
+    if (cat.includes('meso') || cat.includes('ribe') || sub.includes('ribe')) return 'Meso in ribe';
+    if (cat.includes('kruh') || sub.includes('bageta') || sub.includes('žemlja')) return 'Pekovski izdelki';
+    if (cat.includes('olje') || sub.includes('olje')) return 'Olja in maščobe';
+    if (cat.includes('zamrznjena') || sub.includes('sladoled')) return 'Zamrznjena hrana';
+    if (cat.includes('konzervirana') || cat.includes('konzerve') || sub.includes('konzerve')) return 'Konzervirana živila';
+    if (cat.includes('testenine') || sub.includes('juhe')) return 'Testenine, žita, juhe';
+    if (cat.includes('sladki') || cat.includes('sladkor') || sub.includes('čokolada')) return 'Sladkor, sladkarije in prigrizki';
+    if (cat.includes('pijače') || cat.includes('vina in žgane pijače') || sub.includes('sokovi')) return 'Pijače';
+    if (cat.includes('bio') || sub.includes('zdrava')) return 'Bio izdelki';
+    if (cat.includes('delikatesni') || cat.includes('delikatesa') || sub.includes('pripravljene')) return 'Pripravljene jedi';
+    if (sub.includes('zajtrk') || cat.includes('džemi in namazi') || cat.includes('kava') || sub.includes('kosmiči') || sub.includes('marmelada') ||
+        sub.includes('namazi') || sub.includes('čaj') || sub.includes('kava')) return 'Vse za zajtrk';
+    return 'Drugo';
   };
 
   const categorize = (product) => normalizeCategory(product.category, product.subcategory);
