@@ -31,6 +31,7 @@
     "pdfjs-dist": "^5.2.133",
     "playwright": "^1.52.0",
     "puppeteer": "^24.8.2",
-    "resend": "^4.5.1"
+    "resend": "^4.5.1",
+    "supertest": "^7.1.1"
   }
 }
