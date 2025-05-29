@@ -22,14 +22,17 @@ import {
   StarIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/solid";
+import useSWR from 'swr';
+const fetcher = (url) => fetch(url).then((res) => res.json());
+
 
 
 export function Products() {
-  const [products, setProducts] = useState([]);
+  //const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedCats, setSelectedCats] = useState([]);
   const [priceRange, setPriceRange] = useState([0, 100]);
-  const [loading, setLoading] = useState(true);
+  //const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStores, setSelectedStores] = useState([]);
   const itemsPerPage = 24;
@@ -40,6 +43,38 @@ export function Products() {
 const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   const [searchParams] = useSearchParams();
+
+    // Fetch all products via SWR
+    const { data: productsData, error } = useSWR(
+      'http://localhost:3000/api/all-products',
+      fetcher
+    );
+  
+    if (error) {
+      return <Typography color="red" className="text-center py-4">
+        Napaka pri nalaganju izdelkov.
+      </Typography>;
+    }
+    if (!productsData) {
+      return <Typography className="text-center py-4">
+        Nalagam izdelke…
+      </Typography>;
+    }
+  
+    // Enrich products with avgRating
+    const products = React.useMemo(
+      () => productsData.map((p) => {
+        const avgRating = p.comments?.length
+          ? Number(
+              (p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length)
+              .toFixed(1)
+            )
+          : 0;
+        return { ...p, avgRating };
+      }),
+      [productsData]
+    );
+  
 
   useEffect(() => {
     const initialCat = searchParams.get("category");
@@ -57,7 +92,7 @@ const storeToEndpoint = {
 };
 
   // Ob zagonu - naloži vse izdelke
-  useEffect(() => {
+  /*useEffect(() => {
   const fetchInitial = async () => {
     try {
       const res = await fetch("http://localhost:3000/api/all-products");
@@ -121,7 +156,7 @@ const res = await fetch(`http://localhost:3000/${endpoint}`);
 
   fetchSelectedStores();
 }, [selectedStores]);
-
+*/
 
   useEffect(() => {
   const initialCat = searchParams.get("category");
@@ -435,9 +470,7 @@ const filtered = products
         </aside>
 
         <section className="flex-1">
-          {loading ? (
-            <Typography className="text-center text-gray-500">Nalagam izdelke...</Typography>
-          ) : paginated.length === 0 ? (
+          {paginated.length === 0 ? (
             <Typography className="text-center text-gray-500">Ni najdenih izdelkov.</Typography>
           ) : (
             <>
