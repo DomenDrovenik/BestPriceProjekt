@@ -52,7 +52,7 @@ export function ExtendedBasketChart() {
     <Card>
       <CardHeader floated={false} shadow={false} className="flex items-center gap-2">
         <ChartLine className="w-6 h-6 text-red-500" />
-        <Typography variant="h5">Razširjena košarica</Typography>
+        <Typography variant="h5">Primerjava razširjene košarice</Typography>
       </CardHeader>
       <CardBody className="space-y-4">
         <ResponsiveContainer width="100%" height={250}>

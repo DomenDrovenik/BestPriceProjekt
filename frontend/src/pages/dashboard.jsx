@@ -10,6 +10,7 @@ import CategoryAvgPriceChart from '@/widgets/cards/CategoryAvgPriceChart';
 import CategoryDistributionDonutChart from '@/widgets/cards/CategoryDistributionDonutChart';
 import { ArrowLeftRight } from 'lucide-react';
 import { Footer } from '@/widgets/layout';
+import { CategoryDiscountShareChart } from '@/widgets/cards';
 
 // SWR fetcher is configured globally via SWRConfig in App.jsx
 export function Dashboard() {
@@ -64,20 +65,28 @@ export function Dashboard() {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded shadow-sm p-4 h-[450px]"><BasicBasketChart /></div>
-          <div className="bg-white rounded shadow-sm p-4 h-[450px]"><ExtendedBasketChart /></div>
+        <div className="bg-white rounded shadow-sm p-4 min-h-[450px]"><BasicBasketChart /></div>
+        <div className="bg-white rounded shadow-sm p-4 min-h-[450px]"><ExtendedBasketChart /></div>
         </div>
       </section>
 
+      <br />
+
       {/* Cene po kategorijah */}
       <section className="container mx-auto py-8 px-4">
-        <Typography variant="h4" className="text-center mb-6">Povprečne cene po kategorijah</Typography>
-        <div className="w-full h-[450px] mb-8">
+        <Typography variant="h4" className="text-center mb-6">Statistika po kategorijah</Typography>
+        <div className="w-full min-h-[450px] mb-8">
           <CategoryAvgPriceChart />
         </div>
         <br />
-        <div className="w-full h-[450px]">
+        <div className="w-full min-h-[450px]">
           <CategoryDistributionDonutChart />
+        </div>
+      </section>
+      <br />
+      <section className="container mx-auto py-8 px-4">
+        <div className="w-full h-[450px]">
+          <CategoryDiscountShareChart />
         </div>
       </section>
 

@@ -65,7 +65,7 @@ export function BasicBasketChart() {
     <Card>
       <CardHeader floated={false} shadow={false} className="flex items-center gap-2">
         <ChartLine className="w-6 h-6 text-purple-500" />
-        <Typography variant="h5">Osnovna košarica</Typography>
+        <Typography variant="h5">Primerjava osnovne košarice</Typography>
       </CardHeader>
       <CardBody className="space-y-4">
         <ResponsiveContainer width="100%" height={250}>

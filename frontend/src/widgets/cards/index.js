@@ -8,3 +8,4 @@ export * from "@/widgets/cards/extendedBasketChart";
 export * from "@/widgets/cards/updatedBadge";
 export * from "@/widgets/cards/categoryAvgPriceChart";
 export * from "@/widgets/cards/categoryDistributionDonutChart";
+export * from "@/widgets/cards/categoryDiscountShareChart";
