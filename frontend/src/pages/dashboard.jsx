@@ -49,11 +49,24 @@ export function Dashboard() {
 
       {/* Prvi dve vizualki */}
       <section className="-mt-32 bg-white px-4 pb-20 pt-4">
-        <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="w-full h-[450px]"><AveragePriceBarChart data={avgData} /></div>
-          <div className="w-full h-[450px]"><PriceTrendLineChart data={trendData} stores={trendStores} /></div>
-        </div>
-      </section>
+  <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+    {/* both children will now stretch to the same height */}
+    <div className="w-full min-h-[450px] flex flex-col">
+      <AveragePriceBarChart
+        data={avgData}
+        // override the default height to fill its parent
+        containerProps={{ className: 'flex-1' }}
+      />
+    </div>
+    <div className="w-full min-h-[450px] flex flex-col">
+      <PriceTrendLineChart
+        data={trendData}
+        stores={trendStores}
+        containerProps={{ className: 'flex-1' }}
+      />
+    </div>
+  </div>
+</section>
 
       {/* Primerjava košarice */}
       <section className="container mx-auto py-8 px-4">

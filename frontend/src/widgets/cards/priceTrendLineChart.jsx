@@ -18,8 +18,9 @@ const PriceTrendLineChart = ({ data, stores }) => (
       <ChartSpline className="w-6 h-6 text-green-500" />
       <Typography variant="h5" color="blue-gray">Razvoj povprečnih cen skozi čas</Typography>
     </CardHeader>
+    
     <CardBody className="px-0 pt-2">
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={400}>
         <LineChart data={data} margin={{ top: 20, right: 30, bottom: 20, left: 0 }}>
           <XAxis
             dataKey="date"
