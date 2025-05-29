@@ -517,7 +517,7 @@ app.get("/api/dashboard/average-prices", async (req, res) => {
   try {
     const avgData = [];
     for (const { col, label } of stores) {
-      const [{ avgPrice = 0 } = {}] = await col.aggregate([
+      const [{ avgPrice = 0, count = 0 } = {}] = await col.aggregate([
         {
           $project: {
             priceNumeric: {
@@ -529,9 +529,15 @@ app.get("/api/dashboard/average-prices", async (req, res) => {
             },
           },
         },
-        { $group: { _id: null, avgPrice: { $avg: "$priceNumeric" } } },
+        {
+          $group: {
+            _id: null,
+            avgPrice: { $avg: "$priceNumeric" },
+            count:    { $sum: 1 },
+          },
+        },
       ]).toArray();
-      avgData.push({ store: label, avgPrice });
+      avgData.push({ store: label, avgPrice, count });
     }
     res.json(avgData);
   } catch (err) {

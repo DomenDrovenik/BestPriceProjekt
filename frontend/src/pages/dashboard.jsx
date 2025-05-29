@@ -7,6 +7,7 @@ import PriceTrendLineChart from '@/widgets/cards/priceTrendLineChart';
 import BasicBasketChart from '@/widgets/cards/basicBasketChart';
 import ExtendedBasketChart from '@/widgets/cards/extendedBasketChart';
 import { ArrowLeftRight } from 'lucide-react';
+import { Footer } from '@/widgets/layout';
 
 // SWR fetcher je že definiran v App.jsx preko SWRConfig
 export function Dashboard() {
@@ -61,15 +62,16 @@ export function Dashboard() {
       <section className="-mt-32 bg-white px-4 pb-20 pt-4">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="w-full h-[450px] bg-white rounded shadow-sm p-4">
+            <div className="w-full h-[450px]">
               <AveragePriceBarChart data={avgData} />
             </div>
-            <div className="w-full h-[450px] bg-white rounded shadow-sm p-4">
+            <div className="w-full h-[450px]">
               <PriceTrendLineChart data={trendData} stores={trendStores} />
             </div>
           </div>
         </div>
       </section>
+      <br />
 
       {/* Primerjava košarice */}
       <section className="container mx-auto py-8">
@@ -91,6 +93,8 @@ export function Dashboard() {
           </div>
         </div>
       </section>
+      <br />
+
     </>
   );
 }

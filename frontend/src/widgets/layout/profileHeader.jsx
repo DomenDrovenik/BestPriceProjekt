@@ -19,7 +19,7 @@ function ProfileHeaderComponent({ fullName, email, photoURL, onConnect }) {
         </div>
       </div>
       <Button onClick={onConnect} className="bg-gray-900">
-        Connect
+        Uredi profil
       </Button>
     </div>
   );
