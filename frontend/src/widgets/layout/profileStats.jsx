@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Typography } from '@material-tailwind/react';
 import { ChartBarIcon } from '@heroicons/react/24/solid';
 
-export function ProfileStats({ totalSavings, comparisons, alerts }) {
+function ProfileStatsComponent({ totalSavings, comparisons, alerts }) {
   return (
     <div className="flex space-x-6 mt-4">
       <div className="text-center">
@@ -32,3 +32,7 @@ export function ProfileStats({ totalSavings, comparisons, alerts }) {
     </div>
   );
 }
+
+
+// Memoize to prevent re-render when props haven’t changed
+export const ProfileStats = memo(ProfileStatsComponent);

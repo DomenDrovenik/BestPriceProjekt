@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Typography, Button } from '@material-tailwind/react';
 import { UserAvatar } from './UserAvatar';
 
-export function ProfileHeader({ fullName, email, photoURL, onConnect }) {
+function ProfileHeaderComponent({ fullName, email, photoURL, onConnect }) {
   return (
     <div className="flex flex-col lg:flex-row justify-between items-center">
       <div className="flex items-center gap-6">
@@ -24,3 +24,6 @@ export function ProfileHeader({ fullName, email, photoURL, onConnect }) {
     </div>
   );
 }
+
+// Memoize to prevent re-render when props haven’t changed
+export const ProfileHeader = memo(ProfileHeaderComponent);
