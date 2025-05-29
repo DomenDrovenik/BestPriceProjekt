@@ -47,11 +47,11 @@ async function connectToMongoDB() {
     hoferCollection = db.collection("hofer");
 
     stores = [
-      { col: tusCollection,      label: "Tuš"     },
-      { col: merkatorCollection, label: "Mercator"},
-      { col: jagerCollection,    label: "Jager"   },
-      { col: lidlCollection,     label: "Lidl"    },
-      { col: hoferCollection,    label: "Hofer"   },
+      { col: tusCollection, label: "Tuš" },
+      { col: merkatorCollection, label: "Mercator" },
+      { col: jagerCollection, label: "Jager" },
+      { col: lidlCollection, label: "Lidl" },
+      { col: hoferCollection, label: "Hofer" },
     ];
 
     console.log("Connected to MongoDB!");
@@ -64,7 +64,7 @@ async function connectToMongoDB() {
 app.get("/tus", async (req, res) => {
   try {
     const tusData = await tusCollection.find({}).toArray();
-    res.status(200).json(tusData.map(p => ({ ...p, store: "Tuš" })));
+    res.status(200).json(tusData.map((p) => ({ ...p, store: "Tuš" })));
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -74,7 +74,9 @@ app.get("/tus", async (req, res) => {
 app.get("/merkator", async (req, res) => {
   try {
     const merkatorData = await merkatorCollection.find({}).toArray();
-    res.status(200).json(merkatorData.map(p => ({ ...p, store: "Mercator" })));
+    res
+      .status(200)
+      .json(merkatorData.map((p) => ({ ...p, store: "Mercator" })));
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -84,7 +86,7 @@ app.get("/merkator", async (req, res) => {
 app.get("/jager", async (req, res) => {
   try {
     const jagerData = await jagerCollection.find({}).toArray();
-    res.status(200).json(jagerData.map(p => ({ ...p, store: "Jager" })));
+    res.status(200).json(jagerData.map((p) => ({ ...p, store: "Jager" })));
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -94,7 +96,7 @@ app.get("/jager", async (req, res) => {
 app.get("/hofer", async (req, res) => {
   try {
     const hoferData = await hoferCollection.find({}).toArray();
-    res.status(200).json(hoferData.map(p => ({ ...p, store: "Hofer" })));
+    res.status(200).json(hoferData.map((p) => ({ ...p, store: "Hofer" })));
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -104,7 +106,7 @@ app.get("/hofer", async (req, res) => {
 app.get("/lidl", async (req, res) => {
   try {
     const lidlData = await lidlCollection.find({}).toArray();
-    res.status(200).json(lidlData.map(p => ({ ...p, store: "Lidl" })));
+    res.status(200).json(lidlData.map((p) => ({ ...p, store: "Lidl" })));
   } catch (error) {
     console.error("Error retrieving data:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -113,15 +115,29 @@ app.get("/lidl", async (req, res) => {
 
 app.get("/api/all-products", async (req, res) => {
   try {
-   const tus = (await tusCollection.find({}).toArray()).map(p => ({ ...p, store: "Tuš" }));
-  const merkator = (await merkatorCollection.find({}).toArray()).map(p => ({ ...p, store: "Mercator" }));
-  const jager = (await jagerCollection.find({}).toArray()).map(p => ({ ...p, store: "Jager" }));
-  const lidl = (await lidlCollection.find({}).toArray()).map(p => ({ ...p, store: "Lidl" }));
-  const hofer = (await hoferCollection.find({}).toArray()).map(p => ({ ...p, store: "Hofer" }));
+    const tus = (await tusCollection.find({}).toArray()).map((p) => ({
+      ...p,
+      store: "Tuš",
+    }));
+    const merkator = (await merkatorCollection.find({}).toArray()).map((p) => ({
+      ...p,
+      store: "Mercator",
+    }));
+    const jager = (await jagerCollection.find({}).toArray()).map((p) => ({
+      ...p,
+      store: "Jager",
+    }));
+    const lidl = (await lidlCollection.find({}).toArray()).map((p) => ({
+      ...p,
+      store: "Lidl",
+    }));
+    const hofer = (await hoferCollection.find({}).toArray()).map((p) => ({
+      ...p,
+      store: "Hofer",
+    }));
 
-  const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
-  res.status(200).json(all);
-
+    const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
+    res.status(200).json(all);
   } catch (error) {
     console.error("Napaka pri pridobivanju vseh izdelkov:", error);
     res.status(500).json({ message: "Napaka na strežniku" });
@@ -262,18 +278,18 @@ async function findBestWithFuse(col, query, limit = 1) {
     .split(/\s+/)
     .map((w) => w.trim())
     .filter((w) => w.length >= 3);
-    let prelim;
-    if (words.length) {
-      const orRegex = words.map(w => {
-        const esc = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');  // pobegni vse posebne znake
-        return { name: { $regex: new RegExp(esc, 'i') } };
-      });
-      prelim = await col.find({ $or: orRegex }).limit(100).toArray();
-    } else {
-      prelim = await col.find().limit(100).toArray();
-    }
-  
-    if (!prelim.length) return null;
+  let prelim;
+  if (words.length) {
+    const orRegex = words.map((w) => {
+      const esc = w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // pobegni vse posebne znake
+      return { name: { $regex: new RegExp(esc, "i") } };
+    });
+    prelim = await col.find({ $or: orRegex }).limit(100).toArray();
+  } else {
+    prelim = await col.find().limit(100).toArray();
+  }
+
+  if (!prelim.length) return null;
 
   if (!prelim.length) return null;
 
@@ -503,7 +519,9 @@ app.get("/api/search", async (req, res) => {
       results.push({
         ...item,
         store,
-        priceNum: parseFloat((item.actionPrice || item.price || "0").toString().replace(",", ".")),
+        priceNum: parseFloat(
+          (item.actionPrice || item.price || "0").toString().replace(",", ".")
+        ),
       });
     }
   }
@@ -511,26 +529,27 @@ app.get("/api/search", async (req, res) => {
   res.json(results.slice(0, 10)); // vrni največ 10 zadetkov
 });
 
-
 // 1) Average prices
 app.get("/api/dashboard/average-prices", async (req, res) => {
   try {
     const avgData = [];
     for (const { col, label } of stores) {
-      const [{ avgPrice = 0 } = {}] = await col.aggregate([
-        {
-          $project: {
-            priceNumeric: {
-              $cond: [
-                { $ne: ["$actionPrice", null] },
-                { $toDouble: "$actionPrice" },
-                { $toDouble: "$price" },
-              ],
+      const [{ avgPrice = 0 } = {}] = await col
+        .aggregate([
+          {
+            $project: {
+              priceNumeric: {
+                $cond: [
+                  { $ne: ["$actionPrice", null] },
+                  { $toDouble: "$actionPrice" },
+                  { $toDouble: "$price" },
+                ],
+              },
             },
           },
-        },
-        { $group: { _id: null, avgPrice: { $avg: "$priceNumeric" } } },
-      ]).toArray();
+          { $group: { _id: null, avgPrice: { $avg: "$priceNumeric" } } },
+        ])
+        .toArray();
       avgData.push({ store: label, avgPrice });
     }
     res.json(avgData);
@@ -544,7 +563,7 @@ app.get("/api/dashboard/average-prices", async (req, res) => {
 app.get("/api/dashboard/price-trends", async (req, res) => {
   try {
     const dateMap = {};
-    const storeLabels = stores.map(s => s.label);
+    const storeLabels = stores.map((s) => s.label);
 
     for (const { col, label } of stores) {
       const docs = await col
@@ -552,9 +571,9 @@ app.get("/api/dashboard/price-trends", async (req, res) => {
         .project({ previousPrices: 1 })
         .toArray();
 
-      docs.forEach(doc => {
+      docs.forEach((doc) => {
         (doc.previousPrices || []).forEach(({ date, price }) => {
-          const d = new Date(date).toISOString().slice(0,10);
+          const d = new Date(date).toISOString().slice(0, 10);
           dateMap[d] = dateMap[d] || { date: d };
           dateMap[d][label] = dateMap[d][label] || [];
           dateMap[d][label].push(parseFloat(price));
@@ -564,9 +583,9 @@ app.get("/api/dashboard/price-trends", async (req, res) => {
 
     const data = Object.values(dateMap)
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map(entry => {
+      .map((entry) => {
         const out = { date: entry.date };
-        storeLabels.forEach(label => {
+        storeLabels.forEach((label) => {
           const arr = entry[label] || [];
           out[label] = arr.length
             ? arr.reduce((sum, v) => sum + v, 0) / arr.length
@@ -637,15 +656,15 @@ async function fetchBasketItemPrices(itemName) {
   for (const { col, label: store } of stores) {
     const doc = await findBestWithFuse(col, itemName);
     if (doc) {
-      const price = doc.actionPrice != null
-        ? parseFloat(doc.actionPrice)
-        : parseFloat(doc.price);
+      const price =
+        doc.actionPrice != null
+          ? parseFloat(doc.actionPrice)
+          : parseFloat(doc.price);
       prices.push({ store, price });
     }
   }
   if (!prices.length) return null;
-  const avgPrice =
-    prices.reduce((sum, p) => sum + p.price, 0) / prices.length;
+  const avgPrice = prices.reduce((sum, p) => sum + p.price, 0) / prices.length;
   return { item: itemName, prices, avgPrice };
 }
 
@@ -660,7 +679,9 @@ app.get("/api/basket/basic", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Napaka pri basic basket:", err);
-    res.status(500).json({ message: "Napaka pri pridobivanju osnovne košarice" });
+    res
+      .status(500)
+      .json({ message: "Napaka pri pridobivanju osnovne košarice" });
   }
 });
 
@@ -675,14 +696,15 @@ app.get("/api/basket/extended", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Napaka pri extended basket:", err);
-    res.status(500).json({ message: "Napaka pri pridobivanju razširjene košarice" });
+    res
+      .status(500)
+      .json({ message: "Napaka pri pridobivanju razširjene košarice" });
   }
 });
-
-
-
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   connectToMongoDB();
 });
+
+module.exports = app;
