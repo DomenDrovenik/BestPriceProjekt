@@ -39,6 +39,7 @@ export function Products() {
   const [onlyDiscounted, setOnlyDiscounted] = useState(false);
   const [sortBy, setSortBy] = useState("");
   const [minRating, setMinRating] = useState(0);
+  const [sortByDiscount, setSortByDiscount] = useState(false);
 
 const [initialLoadDone, setInitialLoadDone] = useState(false);
 
@@ -231,10 +232,17 @@ const filtered = products
   .filter((p) => !onlyDiscounted || p.actionPrice != null)
   .filter((p) => p.avgRating >= minRating)
     .sort((a, b) => {
-      if (sortBy === "rating-desc") return b.avgRating - a.avgRating;
-      if (sortBy === "rating-asc") return a.avgRating - b.avgRating;
-      return 0;
-    });
+  if (sortBy === "rating-desc") return b.avgRating - a.avgRating;
+  if (sortBy === "rating-asc") return a.avgRating - b.avgRating;
+  if (sortByDiscount) {  // Dodaj ta pogoj
+    const discountA = a.actionPrice ? 
+      Math.round(100 - (a.actionPrice / a.price) * 100) : 0;
+    const discountB = b.actionPrice ? 
+      Math.round(100 - (b.actionPrice / b.price) * 100) : 0;
+    return discountB - discountA;
+  }
+  return 0;
+})
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -397,6 +405,14 @@ const filtered = products
                   checked={onlyDiscounted}
                   onChange={() => setOnlyDiscounted(!onlyDiscounted)}
                 />
+                <Checkbox
+                  label="Razvrsti po največjih popustih"
+                  checked={sortByDiscount}
+                  onChange={() => {
+                    setSortByDiscount(!sortByDiscount);
+                    setSortBy(""); // Ponastavi druge načine razvrščanja
+                  }}
+                />
               </div>
               
               <div>
@@ -461,6 +477,7 @@ const filtered = products
                   setMinRating(0);
                   setSortBy("");
                   setInitialLoadDone(false);
+                  setSortByDiscount(false);
                 }}
               >
                 Počisti filtre
@@ -475,82 +492,102 @@ const filtered = products
           ) : (
             <>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {paginated.map((p, index) => (
-                  <Card key={index} className="overflow-hidden">
-                    <CardHeader floated={false} className="h-36 flex items-center justify-center bg-white">
-                      <img
-                        src={
-                          p.image?.startsWith("http")
-                            ? p.image
-                            : p.store === "Hofer"
-                            ? "/img/HOFER.png"
-                            : "/img/no-image.png"
-                        }
-                        alt={p.name}
-                        className="max-h-28 w-auto object-contain"
-                      />
+                {paginated.map((p, index) => {
+                  const hasDiscount = p.actionPrice != null && p.actionPrice !== p.price;
+                  const discount = hasDiscount
+                    ? Math.round(100 - (p.actionPrice / p.price) * 100)
+                    : 0;
 
-                    </CardHeader>
-                    <CardBody className="pb-4">
-                      <Typography variant="h5" className="mb-2 font-bold">{p.name}</Typography>
-                      <Typography variant="paragraph" className="mb-2 text-blue-gray-600">
-                        {categorize(p)} – {p.store || "Neznana trgovina"}
-                      </Typography>
-                      <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
-                        {p.actionPrice != null ? (
-                          <>
-                            <span className="line-through text-gray-500">
-                              {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                            </span>
-                            <span className="text-red-600 font-bold">
-                              {(parseFloat(p.actionPrice?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                          </>
-                        )}
-                        
-                        {p.avgRating > 0 && (
-                          <div className="flex justify-end">
-                            <span className="text-yellow-400 flex items-center gap-1">
-                              {p.avgRating.toFixed(1)}
-                              <StarIcon className="h-6 w-6 text-yellow-400" />
-                            </span>
-                          </div>
-                        )}
-                      </Typography>
-
-                      <div className="mb-2">
-                        <RouterLink to={`/products/${p._id}`}>
-                          <Button size="sm" className="w-full">
-                            Več
-                          </Button>
-                        </RouterLink>
-                      </div>
-
-                      {user && (
-                        <div className="mb-4">
-                          <Button
-                            size="sm"
-                            color="green"
-                            className="w-full"
-                            onClick={() => openDialog(p)}
-                          >
-                            Dodaj v seznam
-                          </Button>
-                        </div>
+                  return (
+                    <Card key={index} className="relative overflow-hidden">
+                    
+                      {hasDiscount && (
+                        <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md font-semibold z-10">
+                          -{discount}%
+                        </span>
                       )}
 
-                      <br />
-                      <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
-                        Cena posodobljena: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
-                        <UpdatedBadge updatedAt={p.updatedAt} />
-                      </Typography>
-                    </CardBody>
-                  </Card>
-                ))}
+                      <CardHeader floated={false} className="h-36 flex items-center justify-center bg-white">
+                        <img
+                          src={
+                            p.image?.startsWith("http")
+                              ? p.image
+                              : p.store === "Hofer"
+                              ? "/img/HOFER.png"
+                              : "/img/no-image.png"
+                          }
+                          alt={p.name}
+                          className="max-h-28 w-auto object-contain"
+                        />
+                      </CardHeader>
+                        
+                      <CardBody className="pb-4">
+                        <Typography variant="h5" className="mb-2 font-bold">
+                          {p.name}
+                        </Typography>
+                        
+                        <Typography variant="paragraph" className="mb-2 text-blue-gray-600">
+                          {categorize(p)} – {p.store || "Neznana trgovina"}
+                        </Typography>
+                        
+                        <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
+                          {hasDiscount ? (
+                            <>
+                              <span className="line-through text-gray-500">
+                                {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                              </span>
+                              <span className="text-red-600 font-bold">
+                                {(parseFloat(p.actionPrice?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-black font-bold">
+                              {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                            </span>
+                          )}
+
+                          {p.avgRating > 0 && (
+                            <div className="flex justify-end">
+                              <span className="text-yellow-400 flex items-center gap-1">
+                                {p.avgRating.toFixed(1)}
+                                <StarIcon className="h-6 w-6 text-yellow-400" />
+                              </span>
+                            </div>
+                          )}
+                        </Typography>
+                        
+                        <div className="mb-2">
+                          <RouterLink to={`/products/${p._id}`}>
+                            <Button size="sm" className="w-full">
+                              Več
+                            </Button>
+                          </RouterLink>
+                        </div>
+                        
+                        {user && (
+                          <div className="mb-4">
+                            <Button
+                              size="sm"
+                              color="green"
+                              className="w-full"
+                              onClick={() => openDialog(p)}
+                            >
+                              Dodaj v seznam
+                            </Button>
+                          </div>
+                        )}
+
+                        <br />
+                      
+                        <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
+                          Cena posodobljena: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
+                          <UpdatedBadge updatedAt={p.updatedAt} />
+                        </Typography>
+                      </CardBody>
+                    </Card>
+                  );
+                })}
+
               </div>
               {renderPagination()}
               <div className="h-20" />

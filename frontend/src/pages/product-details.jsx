@@ -50,7 +50,7 @@ export function ProductDetails() {
     const [editing, setEditing] = useState(null); // userId, ki ga urejamo
     const [editCommentText, setEditCommentText] = useState("");
     const [editRating, setEditRating] = useState(0);
-    const [open, setOpen] = useState(false)
+    const [open, setOpen] = useState(false);
 
     const toggleOpen = () =>{
       setOpen(!open);
@@ -245,8 +245,11 @@ const handleDeleteComment = async (userId) => {
             <ArrowLeftIcon className="w-5 h-5" /> Nazaj
           </Button>
         </RouterLink>
-    
+        
         <Card className="mb-6 max-w-lg mx-auto">
+          {(product.actionPrice != null && product.price != product.actionPrice) && (<span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md font-semibold z-10">
+                          -{Math.round(100 - (product.actionPrice / product.price) * 100)}%
+                        </span>)}
         <CardHeader
           floated={false}
           className="h-64 bg-white flex items-center justify-center overflow-hidden"
@@ -262,7 +265,7 @@ const handleDeleteComment = async (userId) => {
             {product.name}
           </Typography>
           <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
-                                  {product.actionPrice != null ? (
+                                  {(product.actionPrice != null && product.actionPrice != product.price )? (
                                     <>
                                       <span className="line-through text-gray-500">
                                         {(parseFloat(product.price?.toString().replace(",", ".")) || 0).toFixed(2)} €

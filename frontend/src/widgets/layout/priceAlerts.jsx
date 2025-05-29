@@ -9,8 +9,9 @@ import {
   DialogBody,
   DialogFooter,
   Input,
+   
 } from '@material-tailwind/react';
-import { BellIcon } from '@heroicons/react/24/solid';
+import { BellIcon,CheckCircleIcon } from '@heroicons/react/24/solid';
 
 function PriceAlertsComponent({
   alerts,
@@ -84,12 +85,13 @@ function PriceAlertsComponent({
                   <small>({new Date(a.triggeredAt?.seconds * 1000).toLocaleString()})</small>
                 </span>
                 {a.triggered && !a.seen && (
-                  <Button 
+                  <><Button 
                     onClick={() => onSeen(a.id)}
-                    size="sm" variant="text"
-                  >
-                    Označi opaženo
-                  </Button>
+                    size="sm" variant="text" className='flex flex-row items-center'
+                  ><CheckCircleIcon className='text-green-500 w-6 h-6 '/>
+                     Označi opaženo
+                  </Button></>
+                  
                 )}
                 <Button size="sm" variant="text" onClick={() => onReset(a.id)}>
                   Reset

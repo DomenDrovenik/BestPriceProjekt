@@ -14,8 +14,8 @@ export function UpdatedBadge({ updatedAt }) {
   const hours = (Date.now() - date.getTime()) / 36e5;
 
   // barvna koda
-  let color = 'text-green-600';
-  if (hours > 168) color = 'text-red-600';
+  let color = 'text-red-600';
+  if (hours > 168) color = 'text-green-600';
   else if (hours > 120) color = 'text-yellow-600';
 
   return (
