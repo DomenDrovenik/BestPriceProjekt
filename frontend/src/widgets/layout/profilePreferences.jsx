@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardBody, Typography } from '@material-tailwind/react';
 import { StarIcon } from '@heroicons/react/24/solid';
 
-export function ProfilePreferences({ stores, categories }) {
+function ProfilePreferencesComponent({ stores, categories }) {
   return (
     <Card className="mb-6">
       <CardBody>
@@ -25,3 +25,7 @@ export function ProfilePreferences({ stores, categories }) {
     </Card>
   );
 }
+
+
+// Memoize to prevent re-render when props haven’t changed
+export const ProfilePreferences = memo(ProfilePreferencesComponent);

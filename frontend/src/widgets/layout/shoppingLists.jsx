@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardBody, Typography, Button } from '@material-tailwind/react';
 import { ShoppingCartIcon } from '@heroicons/react/24/solid';
 
-export function ShoppingLists({ lists, onCreate }) {
+function ShoppingListsComponent({ lists, onCreate }) {
   const navigate = useNavigate();
   const handleOpen = (id) => {
     navigate(`/shopping-list`);
@@ -49,4 +49,5 @@ export function ShoppingLists({ lists, onCreate }) {
   );
 }
 
-export default ShoppingLists;
+// Memoize to prevent unnecessary re-renders when props don’t change
+export const ShoppingLists = memo(ShoppingListsComponent);

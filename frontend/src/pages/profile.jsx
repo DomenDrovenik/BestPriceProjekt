@@ -12,10 +12,10 @@ export function Profile() {
   const [stats, setStats] = useState({ totalSavings: 0, comparisons: 0, alertsTriggered: 0 });
   const [lists, setLists] = useState([]);
   const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  //const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async user => {
+    /*const unsubscribe = onAuthStateChanged(auth, async user => {
       if (!user) return setLoading(false);
       const userRef = doc(firestore, 'users', user.uid);
       const snap = await getDoc(userRef);
@@ -30,21 +30,73 @@ export function Profile() {
         setFavorites({ stores: data.favoriteStores || [], categories: data.favoriteCategories || [] });
       } else {
         setProfile({ name: user.displayName || '', surname: '', email: user.email, photoURL: user.photoURL || '' });
-      }
-      const statsSnap = await getDoc(doc(firestore, 'users', user.uid, 'meta', 'stats'));
+      }*/
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          if (!user) {
+            //setLoading(false);
+            return;
+          }
+      /*const statsSnap = await getDoc(doc(firestore, 'users', user.uid, 'meta', 'stats'));
       if (statsSnap.exists()) setStats(statsSnap.data());
       const listsSnap = await getDocs(collection(firestore, 'users', user.uid, 'lists'));
       setLists(listsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       const alertsSnap = await getDocs(collection(firestore, 'users', user.uid, 'priceAlerts'));
       setAlerts(alertsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
+      setLoading(false);*/
+
+      //setLoading(true);
+      const userRef   = doc(firestore, 'users', user.uid);
+      const statsRef  = doc(firestore, 'users', user.uid, 'meta', 'stats');
+      const listsCol  = collection(firestore, 'users', user.uid, 'lists');
+      const alertsCol = collection(firestore, 'users', user.uid, 'priceAlerts');
+
+      try {
+        const [snap, statsSnap, listsSnap, alertsSnap] = await Promise.all([
+          getDoc(userRef),
+          getDoc(statsRef),
+          getDocs(listsCol),
+          getDocs(alertsCol),
+        ]);
+
+        if (snap.exists()) {
+          const data = snap.data();
+          setProfile({
+            name: data.name || '',
+            surname: data.surname || '',
+            email: data.email || user.email,
+            photoURL: data.photoURL || user.photoURL || '',
+          });
+          setFavorites({
+            stores: data.favoriteStores || [],
+            categories: data.favoriteCategories || [],
+          });
+        } else {
+          setProfile({
+            name: user.displayName || '',
+            surname: '',
+            email: user.email,
+            photoURL: user.photoURL || '',
+          });
+        }
+
+        if (statsSnap.exists()) {
+          setStats(statsSnap.data());
+        }
+
+        setLists(listsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setAlerts(alertsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (error) {
+        console.error("Napaka pri nalaganju uporabniških podatkov:", error);
+      /*} finally {
+        setLoading(false);*/
+      }
     });
     return unsubscribe;
   }, []);
 
-  if (loading) {
+  /*if (loading) {
     return <div className="flex h-screen items-center justify-center"><Typography>Loading profile…</Typography></div>;
-  }
+  }*/
 
   
 

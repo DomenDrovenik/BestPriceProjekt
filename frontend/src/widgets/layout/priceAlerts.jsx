@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   Card,
   CardBody,
@@ -12,7 +12,7 @@ import {
 } from '@material-tailwind/react';
 import { BellIcon } from '@heroicons/react/24/solid';
 
-export function PriceAlerts({
+function PriceAlertsComponent({
   alerts,
   onRemove,  // callback za izbris
   onReset,   // callback za ponastavitev
@@ -189,4 +189,5 @@ export function PriceAlerts({
   );
 }
 
-export default PriceAlerts;
+// Memoize to prevent unnecessary re-renders when props don’t change
+export const PriceAlerts = memo(PriceAlertsComponent);
