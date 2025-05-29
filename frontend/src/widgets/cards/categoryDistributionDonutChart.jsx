@@ -59,14 +59,14 @@ export function CategoryDistributionDonutChart() {
         <Typography variant="h5">Porazdelitev izdelkov po kategorijah</Typography>
       </CardHeader>
       <CardBody className="flex flex-col items-center">
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={500}>
           <PieChart>
             <Pie 
               data={data} 
               dataKey="value" 
               nameKey="name" 
-              innerRadius={80} 
-              outerRadius={120} 
+              innerRadius={110} 
+              outerRadius={200} 
               label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} 
             >
               {data.map((_, idx) => (
