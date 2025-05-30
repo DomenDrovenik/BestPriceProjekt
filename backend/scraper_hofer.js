@@ -263,7 +263,7 @@ function parseDateDM(s) {
       });
 
     for (const doc of docs) {
-      const filter = { name: doc.name };
+      const filter = { name: doc.name, weight: doc.weight };
       const existing = await collection.findOne(filter);
       if (!existing) {
         // insert new item with initial price history
