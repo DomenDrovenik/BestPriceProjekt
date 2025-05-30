@@ -41,12 +41,16 @@ export function ShoppingList() {
     return () => unsubscribe();
   }, []);
 
-  const fetchLists = async (uid) => {
-    const snapshot = await getDocs(collection(firestore, "users", uid, "lists"));
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setLists(data);
-    if (data.length > 0) setSelectedListId(data[0].id);
-  };
+ const fetchLists = async (uid) => {
+  const snapshot = await getDocs(collection(firestore, "users", uid, "lists"));
+  const data = snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => Number(b.id) - Number(a.id)); // sortiraj po ID, ki je timestamp
+
+  setLists(data);
+  if (data.length > 0) setSelectedListId(data[0].id);
+};
+
 
   const createNewList = async () => {
     if (!user) return;
@@ -320,7 +324,7 @@ function sortByUnitPrice(products) {
 
 const [isPensioner, setIsPensioner] = useState(false);
 const itemsWith25 = items.filter(i => i.extraDiscount25);
-const totalRaw = items.reduce((sum, i) => sum + i.price, 0);
+const totalRaw = items.reduce((sum, i) => sum + i.price * parseQuantityMultiplier(i.amount), 0);
 const [mercatorPromo, setMercatorPromo] = useState("none");
 const [mercatorDialogOpen, setMercatorDialogOpen] = useState(false);
 const [selectedMercatorOption, setSelectedMercatorOption] = useState("none"); // 'none' | 'pension' | '25on1'
@@ -460,6 +464,16 @@ useEffect(() => {
 }, [user, lists, selectedListId]);
 
 const [showRecommendations, setShowRecommendations] = useState(false);
+
+function parseQuantityMultiplier(amount) {
+  if (!amount) return 1;
+  const match = amount.match(/^(\d+)\s*x$/i);
+  if (match) {
+    const multiplier = parseInt(match[1], 10);
+    return isNaN(multiplier) ? 1 : multiplier;
+  }
+  return 1;
+}
 
 
   return (
@@ -702,7 +716,7 @@ const [showRecommendations, setShowRecommendations] = useState(false);
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-green-700">{item.price.toFixed(2)} €</span>
+                <span className="text-sm text-black-700">{item.price.toFixed(2)} €</span>
                 {!alreadyInList ? (
                   <Button
                     size="sm"
@@ -748,8 +762,10 @@ const [showRecommendations, setShowRecommendations] = useState(false);
                         <span>
                         {item.name}
                         {item.amount ? ` – ${item.amount}` : ""}
-                        {item.price ? ` – ${item.price.toFixed(2)} €` : ""}
-                          {editingItemId === item.id && (
+                        {item.price
+                          ? ` – ${(item.price * parseQuantityMultiplier(item.amount)).toFixed(2)} €`
+                          : ""}
+                                                  {editingItemId === item.id && (
                             <span className="ml-2 text-blue-500 italic">(urejaš)</span>
                           )}
                         </span>
@@ -790,7 +806,9 @@ const [showRecommendations, setShowRecommendations] = useState(false);
                   <span>
                     {item.name}
                     {item.amount ? ` – ${item.amount}` : ""}
-                    {item.price ? ` – ${item.price.toFixed(2)} €` : ""}
+                    {item.price
+                      ? ` – ${(item.price * parseQuantityMultiplier(item.amount)).toFixed(2)} €`
+                      : ""}
                     {editingItemId === item.id && (
                       <span className="ml-2 text-blue-500 italic">(urejaš)</span>
                     )}
@@ -831,7 +849,9 @@ const [showRecommendations, setShowRecommendations] = useState(false);
                   <span className="line-through text-gray-500">
                     {item.name}
                     {item.amount ? ` – ${item.amount}` : ""}
-                    {item.price ? ` – ${item.price.toFixed(2)} €` : ""}
+                    {item.price
+                      ? ` – ${(item.price * parseQuantityMultiplier(item.amount)).toFixed(2)} €`
+                      : ""}
 
                     {item.store && (
                       <span className="text-sm italic ml-2">({item.store})</span>
@@ -897,44 +917,53 @@ const [showRecommendations, setShowRecommendations] = useState(false);
           return acc;
         }, {})
     ).map(([store, items]) => {
-      const total = items.reduce((sum, i) => sum + i.price, 0);
+const total = items.reduce(
+  (sum, i) => sum + i.price * parseQuantityMultiplier(i.amount),
+  0
+);
       const discountInfo = storeDiscounts[store];
       const discount = discountInfo?.discount || 0;
 
       const totalWithDiscount = (() => {
-        if (store === "Tuš") {
-        const totalRaw = items.reduce((sum, i) => sum + i.price, 0);
-        const item25 = items.find(i => i.extraDiscount25Tus);
-      if (selectedTusOption === "25on1" && item25) {
-        return items.reduce((sum, item) => {
-          let price = item.price;
-          if (item.id === item25.id) price *= 0.75;
-          return sum + price;
-        }, 0);
-      }
+       if (store === "Tuš") {
+const totalRaw = items.reduce((sum, i) => sum + i.price * parseQuantityMultiplier(i.amount), 0);
+    const item25 = items.find(i => i.extraDiscount25Tus);
+    if (selectedTusOption === "25on1" && item25) {
+  return items.reduce((sum, item) => {
+    let price = item.price;
+    if (item.id === item25.id) price *= 0.75;
+    price *= parseQuantityMultiplier(item.amount);
+    return sum + price;
+  }, 0);
+}
 
-      if (selectedTusOption === "club" && totalRaw > 20) {
-        return items.reduce((sum, item) => sum + item.price * 0.9, 0);
-      }
-        return totalRaw;
-      }
+   if (selectedTusOption === "club" && totalRaw > 20) {
+  return items.reduce((sum, item) => {
+    return sum + item.price * 0.9 * parseQuantityMultiplier(item.amount);
+  }, 0);
+}
 
-      if (store !== "Mercator") {
-        return items.reduce((sum, item) => {
-          let price = item.price;
-          if (discount > 0) price *= (1 - discount);
-          return sum + price;
-        }, 0);
-      }
+    return totalRaw;
+  }
+
+     if (store !== "Mercator") {
+  return items.reduce((sum, item) => {
+    let price = item.price;
+    price *= parseQuantityMultiplier(item.amount);
+    if (discount > 0) price *= (1 - discount);
+    return sum + price;
+  }, 0);
+}
+
       if (store === "Jager") {
-        const totalRaw = items.reduce((sum, i) => sum + i.price, 0);
+        const totalRaw = items.reduce((sum, i) => sum + i.price * parseQuantityMultiplier(i.amount), 0);
         const has10Back = totalRaw > 20;
 
         // vrednost nakupa ostane nespremenjena – ni popusta, je vračilo
         return totalRaw;
       }
 
-        const totalRaw = items.reduce((sum, i) => sum + i.price, 0);
+        const totalRaw = items.reduce((sum, i) => sum + i.price * parseQuantityMultiplier(i.amount), 0);
         const pensionerDiscount = selectedMercatorOption === "pension" ? 0.9 : 1;
         const itemsWith25 = items.filter(i => i.extraDiscount25);
         const item25 = itemsWith25.length > 0 ? itemsWith25[0] : null;
@@ -949,14 +978,17 @@ const [showRecommendations, setShowRecommendations] = useState(false);
       {
           return items.reduce((sum, item) => {
             let price = item.price;
-            if (item.id === item25.id) price *= 0.75;
-            price *= pensionerDiscount;
+if (item.id === item25.id) price *= 0.75;
+price *= parseQuantityMultiplier(item.amount);
+price *= pensionerDiscount;
+
             return sum + price;
           }, 0);
         }
 
         // drugače le upokojenski popust
-        return items.reduce((sum, item) => sum + item.price * pensionerDiscount, 0);
+return items.reduce((sum, item) =>
+  sum + item.price * parseQuantityMultiplier(item.amount) * pensionerDiscount, 0);
       })();
 
 
