@@ -463,6 +463,43 @@ useEffect(() => {
   generateAndFetchRecommendations();
 }, [user, lists, selectedListId]);
 
+useEffect(() => {
+  if (
+    selectedMercatorOption === "25on1" &&
+    currentList &&
+    !selectedItemId25
+  ) {
+    const mercatorItems = currentList.items.filter(
+      (i) => i.store === "Mercator" && i.price
+    );
+    if (mercatorItems.length > 0) {
+      const mostExpensive = mercatorItems.reduce((a, b) =>
+        a.price > b.price ? a : b
+      );
+      setSelectedItemId25(mostExpensive.id);
+    }
+  }
+}, [selectedMercatorOption, currentList]);
+
+useEffect(() => {
+  if (
+    selectedTusOption === "25on1" &&
+    currentList &&
+    !selectedItemId25Tus
+  ) {
+    const tusItems = currentList.items.filter(
+      (i) => i.store === "Tuš" && i.price
+    );
+    if (tusItems.length > 0) {
+      const mostExpensive = tusItems.reduce((a, b) =>
+        a.price > b.price ? a : b
+      );
+      setSelectedItemId25Tus(mostExpensive.id);
+    }
+  }
+}, [selectedTusOption, currentList]);
+
+
 const [showRecommendations, setShowRecommendations] = useState(false);
 
 function parseQuantityMultiplier(amount) {
@@ -1174,7 +1211,7 @@ return items.reduce((sum, item) =>
         </div>
     
       )}
-    <Dialog open={mercatorDialogOpen} handler={() => setMercatorDialogOpen(false)} size="sm">
+    <Dialog open={mercatorDialogOpen} handler={() => setMercatorDialogOpen(false)} size="md">
       <DialogHeader>Izberi Mercator popust</DialogHeader>
       <DialogBody className="space-y-4">
         <div>
@@ -1204,12 +1241,23 @@ return items.reduce((sum, item) =>
               onChange={(e) => setSelectedItemId25(Number(e.target.value))}
               className="mt-2 block w-full border px-2 py-1 rounded"
             >
-              <option value="">-- Izberi izdelek --</option>
-              {items.filter(i => i.store === "Mercator").map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} {item.price ? `– ${item.price.toFixed(2)} €` : ""}
+            {items
+            .filter(i => i.store === "Mercator")
+            .map((item) => {
+              const isSuggested = item.id === selectedItemId25;
+              const label = `${item.name} ${item.price ? `– ${item.price.toFixed(2)} €` : ""}${isSuggested ? " (predlagano)" : ""}`;
+              return (
+                <option
+                  key={item.id}
+                  value={item.id}
+                  style={isSuggested ? { fontWeight: "bold", color: "#1e3a8a" } : {}}
+                >
+                  {label}
                 </option>
-              ))}
+              );
+            })}
+
+
             </select>
           )}
         </div>
@@ -1248,7 +1296,7 @@ return items.reduce((sum, item) =>
         </Button>
       </DialogFooter>
     </Dialog>
-    <Dialog open={tusDialogOpen} handler={() => setTusDialogOpen(false)} size="sm">
+    <Dialog open={tusDialogOpen} handler={() => setTusDialogOpen(false)} size="md">
       <DialogHeader>Izberi Tuš popust</DialogHeader>
       <DialogBody className="space-y-4">
         <div>
@@ -1278,12 +1326,22 @@ return items.reduce((sum, item) =>
               onChange={(e) => setSelectedItemId25Tus(Number(e.target.value))}
               className="mt-2 block w-full border px-2 py-1 rounded"
             >
-              <option value="">-- Izberi izdelek --</option>
-              {items.filter(i => i.store === "Tuš").map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} {item.price ? `– ${item.price.toFixed(2)} €` : ""}
-                </option>
-              ))}
+              {items
+              .filter(i => i.store === "Tuš")
+              .map((item) => {
+                const isSuggested = item.id === selectedItemId25Tus;
+                const label = `${item.name} ${item.price ? `– ${item.price.toFixed(2)} €` : ""}${isSuggested ? " (predlagano)" : ""}`;
+                return (
+                  <option
+                    key={item.id}
+                    value={item.id}
+                    style={isSuggested ? { fontWeight: "bold", color: "#166534" } : {}}
+                  >
+                    {label}
+                  </option>
+                );
+              })}
+
             </select>
           )}
         </div>
