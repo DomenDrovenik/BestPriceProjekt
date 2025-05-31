@@ -1,8 +1,10 @@
 // db.js
-const { MongoClient,ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion } = require("mongodb");
+require("dotenv").config();
 
-const MONGO_URI = process.env.MONGO_URI 
-  || 'mongodb+srv://anja:anja@cluster0.bwlvpsm.mongodb.net/BestPrice?retryWrites=true&w=majority';
+const MONGO_URI =
+  process.env.DATABASE_URL ||
+  "mongodb+srv://anja:anja@cluster0.bwlvpsm.mongodb.net/BestPrice?retryWrites=true&w=majority";
 
 let client;
 let db;
@@ -19,7 +21,7 @@ let db;
 //     });
 //     await client.connect();
 //     // DB ime iz URI ali privzeto iz .db('BestPrice')
-//     db = client.db(); 
+//     db = client.db();
 //   }
 //   return db.collection(name);
 // }
@@ -32,7 +34,7 @@ async function getCollection(name) {
         strict: true,
         deprecationErrors: true,
       },
-      autoSelectFamily: false
+      autoSelectFamily: false,
     });
     await client.connect();
     db = client.db(); // ali db = client.db("BestPrice") za večjo varnost
@@ -44,7 +46,7 @@ async function close() {
   if (client) {
     await client.close();
     client = null;
-    db     = null;
+    db = null;
   }
 }
 

@@ -11,6 +11,7 @@ admin.initializeApp({
 });
 const firestore = admin.firestore();
 const uri =
+  process.env.DATABASE_URL ||
   "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/";
 
 // MongoDB init

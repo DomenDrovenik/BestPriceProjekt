@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const FuseModule = require("fuse.js");
 const Fuse = FuseModule.default || FuseModule;
+require("dotenv").config();
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
@@ -9,14 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// app.use(
-//   cors({
-//     origin: "http://localhost:5173",
-//   })
-// );
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const uri =
+  process.env.DATABASE_URL ||
   "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 const client = new MongoClient(uri, {
@@ -534,26 +531,28 @@ app.get("/api/dashboard/average-prices", async (req, res) => {
   try {
     const avgData = [];
     for (const { col, label } of stores) {
-      const [{ avgPrice = 0, count = 0 } = {}] = await col.aggregate([
-        {
-          $project: {
-            priceNumeric: {
-              $cond: [
-                { $ne: ["$actionPrice", null] },
-                { $toDouble: "$actionPrice" },
-                { $toDouble: "$price" },
-              ],
+      const [{ avgPrice = 0, count = 0 } = {}] = await col
+        .aggregate([
+          {
+            $project: {
+              priceNumeric: {
+                $cond: [
+                  { $ne: ["$actionPrice", null] },
+                  { $toDouble: "$actionPrice" },
+                  { $toDouble: "$price" },
+                ],
+              },
             },
           },
-        },
-        {
-          $group: {
-            _id: null,
-            avgPrice: { $avg: "$priceNumeric" },
-            count:    { $sum: 1 },
+          {
+            $group: {
+              _id: null,
+              avgPrice: { $avg: "$priceNumeric" },
+              count: { $sum: 1 },
+            },
           },
-        },
-      ]).toArray();
+        ])
+        .toArray();
       avgData.push({ store: label, avgPrice, count });
     }
     res.json(avgData);

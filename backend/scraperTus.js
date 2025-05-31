@@ -136,6 +136,7 @@ async function ScrapeTus() {
 
 async function runTusScraper() {
   const uri =
+    process.env.DATABASE_URL ||
     "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
   const client = new MongoClient(uri, {
