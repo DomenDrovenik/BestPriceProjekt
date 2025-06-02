@@ -1,4 +1,5 @@
 const { MongoClient, ServerApiVersion } = require("mongodb");
+require("dotenv").config();
 
 async function syncDatabases(sourceUri, targetUri) {
   const sourceClient = new MongoClient(sourceUri, {
@@ -77,8 +78,7 @@ async function syncDatabases(sourceUri, targetUri) {
   }
 }
 
-const sourceUri =
-  "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/";
-const targetUri = "mongodb+srv://domen:domen@cluster0.6htyv94.mongodb.net/";
+const sourceUri = process.env.SOURCE_URI;
+const targetUri = process.env.TARGET_URI;
 
 syncDatabases(sourceUri, targetUri);

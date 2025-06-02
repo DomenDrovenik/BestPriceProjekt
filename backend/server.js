@@ -10,11 +10,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
-const uri =
-  process.env.DATABASE_URL ||
-  "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.DATABASE_URL;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -36,7 +34,7 @@ let stores = [];
 async function connectToMongoDB() {
   try {
     await client.connect();
-    db = client.db("BestPrice");
+    db = client.db(process.env.DB_NAME);
     tusCollection = db.collection("tus");
     merkatorCollection = db.collection("mercatorproducts");
     jagerCollection = db.collection("jagerproducts");

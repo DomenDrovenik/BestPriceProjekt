@@ -1,18 +1,18 @@
 const admin = require("firebase-admin");
 const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 const { Resend } = require("resend");
-const serviceAccount = require("./serviceAccountKey.json");
+// const serviceAccount = require("./serviceAccountKey.json");
+require("dotenv").config();
 
-const resend = new Resend("re_WEetNdmQ_9FCbpEcREYLkhePHYyH12PDr");
+const resend = new Resend(process.env.RESEND_API_KEY);
+const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY);
 
 // Firestore init
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount), // ali serviceAccountKey.json
+  credential: admin.credential.cert(serviceAccount),
 });
 const firestore = admin.firestore();
-const uri =
-  process.env.DATABASE_URL ||
-  "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/";
+const uri = process.env.DATABASE_URL;
 
 // MongoDB init
 const mongoClient = new MongoClient(uri, {
@@ -35,7 +35,7 @@ let hoferCollection;
 async function connectToMongoDB() {
   try {
     await mongoClient.connect();
-    db = mongoClient.db("BestPrice");
+    db = mongoClient.db(process.env.DB_NAME);
     tusCollection = db.collection("tus");
     merkatorCollection = db.collection("mercatorproducts");
     jagerCollection = db.collection("jagerproducts");

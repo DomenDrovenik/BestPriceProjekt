@@ -1,13 +1,12 @@
 const { MongoClient, ServerApiVersion } = require("mongodb");
+require("dotenv").config();
 
 let client;
 let db;
 let testCollection;
 
 beforeAll(async () => {
-  const uri =
-    "mongodb+srv://domen:domen@cluster0.6htyv94.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
+  const uri = process.env.MONGO_TEST_URI;
   client = new MongoClient(uri, {
     serverApi: {
       version: ServerApiVersion.v1,
@@ -18,7 +17,7 @@ beforeAll(async () => {
   });
 
   await client.connect();
-  db = client.db("BestPrice");
+  db = client.db(process.env.DB_NAME);
 
   testCollection = db.collection(`test`);
 });

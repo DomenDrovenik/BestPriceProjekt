@@ -5,10 +5,9 @@ const { MongoClient } = require("mongodb");
 const natural = require("natural");
 const fs = require("fs").promises;
 const path = require("path");
+require("dotenv").config();
 
-const MONGO_URI =
-  process.env.DATABASE_URL ||
-  "mongodb+srv://anja:anja@cluster0.bwlvpsm.mongodb.net/BestPrice?retryWrites=true&w=majority";
+const MONGO_URI = process.env.DATABASE_URL;
 const DB_NAME = process.env.DB_NAME || "BestPrice";
 const COLL_NAMES = ["JagerProducts", "mercatorproducts", "tus", "lidl"];
 const MODEL_FILE = path.resolve(__dirname, "bayes-model.json");

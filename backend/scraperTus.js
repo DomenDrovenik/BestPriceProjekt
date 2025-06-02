@@ -1,6 +1,7 @@
 // const express = require("express");
 const puppeteer = require("puppeteer");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+require("dotenv").config();
 
 async function ScrapeTus() {
   const browser = await puppeteer.launch({

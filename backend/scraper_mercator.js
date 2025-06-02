@@ -1,9 +1,8 @@
 const puppeteer = require("puppeteer");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+require("dotenv").config();
 
-const uri =
-  process.env.DATABASE_URL ||
-  "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.DATABASE_URL;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,

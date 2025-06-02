@@ -2,9 +2,7 @@
 const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
 
-const MONGO_URI =
-  process.env.DATABASE_URL ||
-  "mongodb+srv://anja:anja@cluster0.bwlvpsm.mongodb.net/BestPrice?retryWrites=true&w=majority";
+const MONGO_URI = process.env.DATABASE_URL;
 
 let client;
 let db;
