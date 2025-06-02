@@ -135,7 +135,7 @@ function parsePrice(priceStr) {
       const newPrice = parsePrice(item.price);
       const actionP = item.actionPrice ? parsePrice(item.actionPrice) : null;
 
-      const filter = { name: item.name };
+      const filter = { name: item.name, image: item.image };
       const existing = await collection.findOne(filter);
       if (!existing) {
         // pick initial price for history
