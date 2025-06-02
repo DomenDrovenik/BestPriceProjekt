@@ -53,7 +53,7 @@ export default function App() {
     mutate("http://localhost:3000/api/basket/extended", fetcher("http://localhost:3000/api/basket/extended"), false);
     mutate("http://localhost:3000/api/dashboard/average-prices", fetcher("http://localhost:3000/api/dashboard/average-prices"), false);
     mutate("http://localhost:3000/api/dashboard/price-trends", fetcher("http://localhost:3000/api/dashboard/price-trends"), false);
-    mutate("http://localhost:3000/api/all-products", fetcher("http://localhost:3000/api/all-products"), false);
+    mutate("https://bestpriceprojekt-production.up.railway.app/api/all-products", fetcher("https://bestpriceprojekt-production.up.railway.app/api/all-products"), false);
   }, []);
 
   return (

@@ -15,6 +15,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebase.js"; // adjust path
 import { doc, getDocs, collection, onSnapshot } from "firebase/firestore";
 import { firestore } from "../../firebase.js";
+import toast from "react-hot-toast";
 
 // your avatar component
 function UserAvatar({ photoURL, alt, onClick }) {
@@ -59,8 +60,10 @@ export function Navbar({ brandName, routes, action }) {
         const alerts = snapshot.docs.map((doc) => doc.data());
         const triggered = alerts.filter((a) => a.triggered && !a.seen).length;
         setTriggeredCount(triggered);
+        
       });
     }
+    
 
     return () => {
       if (alertsUnsubscribe) alertsUnsubscribe();

@@ -21,18 +21,17 @@ import toast from "react-hot-toast";
 import {
   StarIcon,
   ArrowLeftIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  FunnelIcon
 } from "@heroicons/react/24/solid";
 import useSWR from 'swr';
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
-
-
 export function Products() {
-  //const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedCats, setSelectedCats] = useState([]);
   const [priceRange, setPriceRange] = useState([0, 100]);
-  //const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStores, setSelectedStores] = useState([]);
   const itemsPerPage = 24;
@@ -40,147 +39,60 @@ export function Products() {
   const [sortBy, setSortBy] = useState("");
   const [minRating, setMinRating] = useState(0);
   const [sortByDiscount, setSortByDiscount] = useState(false);
-
-const [initialLoadDone, setInitialLoadDone] = useState(false);
-
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [showFilters, setShowFilters] = useState(false); 
   const [searchParams] = useSearchParams();
 
-    // Fetch all products via SWR
-    const { data: productsData, error } = useSWR(
-      'http://localhost:3000/api/all-products',
-      fetcher
-    );
-  
-    if (error) {
-      return <Typography color="red" className="text-center py-4">
-        Napaka pri nalaganju izdelkov.
-      </Typography>;
-    }
-    if (!productsData) {
-      return <Typography className="text-center py-4">
-        Nalagam izdelke…
-      </Typography>;
-    }
-  
-    // Enrich products with avgRating
-    const products = React.useMemo(
-      () => productsData.map((p) => {
-        const avgRating = p.comments?.length
-          ? Number(
-              (p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length)
-              .toFixed(1)
-            )
-          : 0;
-        return { ...p, avgRating };
-      }),
-      [productsData]
-    );
-  
+  const { data: productsData, error } = useSWR(
+    'https://bestpriceprojekt-production.up.railway.app/api/all-products',
+    fetcher
+  );
+
+  if (error) {
+    return <Typography color="red" className="text-center py-4">
+      Napaka pri nalaganju izdelkov.
+    </Typography>;
+  }
+  if (!productsData) {
+    return <Typography className="text-center py-4">
+      Nalagam izdelke…
+    </Typography>;
+  }
+
+  const products = React.useMemo(
+    () => productsData.map((p) => {
+      const avgRating = p.comments?.length
+        ? Number(
+            (p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length)
+            .toFixed(1)
+          )
+        : 0;
+      return { ...p, avgRating };
+    }),
+    [productsData]
+  );
 
   useEffect(() => {
     const initialCat = searchParams.get("category");
     if (initialCat) {
       setSelectedCats([decodeURIComponent(initialCat)]);
     }
+
+    const initialDiscount = searchParams.get("onlyDiscounted");
+    if (initialDiscount === "true") {
+      setOnlyDiscounted(true);
+    }
   }, [searchParams]);
-
-const storeToEndpoint = {
-  "Mercator": "merkator",
-  "Tuš": "tus",
-  "Jager": "jager",
-  "Lidl": "lidl",
-  "Hofer": "hofer",
-};
-
-  // Ob zagonu - naloži vse izdelke
-  /*useEffect(() => {
-  const fetchInitial = async () => {
-    try {
-      const res = await fetch("http://localhost:3000/api/all-products");
-      const data = await res.json();
-     const enriched = data.map((p) => {
-      const avgRating = p.comments && p.comments.length > 0
-        ? Number(
-            (
-              p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length
-            ).toFixed(1)
-          )
-        : 0;
-      return { ...p, avgRating };
-    });
-
-      setProducts(enriched);
-      setInitialLoadDone(true);
-    } catch (error) {
-      console.error("Napaka pri pridobivanju vseh izdelkov:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!initialLoadDone) fetchInitial();
-}, [initialLoadDone]);
-
-  // Ob spremembi trgovcev - pošlji nove API klice
-useEffect(() => {
-  const fetchSelectedStores = async () => {
-    if (selectedStores.length === 0) return;
-
-    setLoading(true);
-    try {
-      const allData = await Promise.all(
-        selectedStores.map(async (storeKey) => {
-const endpoint = storeToEndpoint[storeKey];
-const res = await fetch(`http://localhost:3000/${endpoint}`);
-          const data = await res.json();
-         return data.map((p) => ({
-        ...p,
-        avgRating: p.comments && p.comments.length > 0 
-          ? Number(
-              (
-                p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length
-              ).toFixed(1)
-            )
-          : 0
-      }));
-
-
-        })
-      );
-      setProducts(allData.flat());
-    } catch (error) {
-      console.error("Napaka pri pridobivanju trgovskih izdelkov:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchSelectedStores();
-}, [selectedStores]);
-*/
-
-  useEffect(() => {
-  const initialCat = searchParams.get("category");
-  if (initialCat) {
-    setSelectedCats([decodeURIComponent(initialCat)]);
-  }
-
-  const initialDiscount = searchParams.get("onlyDiscounted");
-  if (initialDiscount === "true") {
-    setOnlyDiscounted(true);
-  }
-}, [searchParams]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [search, selectedCats, priceRange, minRating, sortBy]);
 
   const toggleStore = (store) => {
-  setSelectedStores((prev) =>
-    prev.includes(store) ? prev.filter((s) => s !== store) : [...prev, store]
-  );
-};
-
+    setSelectedStores((prev) =>
+      prev.includes(store) ? prev.filter((s) => s !== store) : [...prev, store]
+    );
+  };
 
   const toggleCat = (cat) => {
     setSelectedCats((prev) =>
@@ -210,38 +122,38 @@ const res = await fetch(`http://localhost:3000/${endpoint}`);
       sub.includes("žitarice") || sub.includes("otroška hrana") || sub.includes("kakav") ||
       sub.includes("sladki namazi")) return "Vse za zajtrk";
     if (sub.includes("vse za peko") || cat.includes("jajca"))  return "Vse za peko";
-  if (sub.includes("tuja prehrana") || sub.includes("hrana tujih dežel")) return "Tuja prehrana";
+    if (sub.includes("tuja prehrana") || sub.includes("hrana tujih dežel")) return "Tuja prehrana";
 
     return "Drugo";
   };
 
   const categorize = (product) => normalizeCategory(product.category, product.subcategory);
 
-const filtered = products
-  .filter((p) => p.name?.toLowerCase().includes(search.toLowerCase()))
-  .filter((p) => {
-    const cat = categorize(p);
-    return selectedCats.length === 0 || selectedCats.includes(cat);
-  })
-  .filter((p) => {
-    const cena = parseFloat(p.price?.toString().replace(",", "."));
-    return cena >= priceRange[0] && cena <= priceRange[1];
-  })
-  .filter((p) => selectedStores.length === 0 || selectedStores.includes(p.store)) // <-- TO DODAŠ
-  .filter((p) => !onlyDiscounted || p.actionPrice != null)
-  .filter((p) => p.avgRating >= minRating)
+  const filtered = products
+    .filter((p) => p.name?.toLowerCase().includes(search.toLowerCase()))
+    .filter((p) => {
+      const cat = categorize(p);
+      return selectedCats.length === 0 || selectedCats.includes(cat);
+    })
+    .filter((p) => {
+      const cena = parseFloat(p.price?.toString().replace(",", "."));
+      return cena >= priceRange[0] && cena <= priceRange[1];
+    })
+    .filter((p) => selectedStores.length === 0 || selectedStores.includes(p.store))
+    .filter((p) => !onlyDiscounted || p.actionPrice != null)
+    .filter((p) => p.avgRating >= minRating)
     .sort((a, b) => {
-  if (sortBy === "rating-desc") return b.avgRating - a.avgRating;
-  if (sortBy === "rating-asc") return a.avgRating - b.avgRating;
-  if (sortByDiscount) {  // Dodaj ta pogoj
-    const discountA = a.actionPrice ? 
-      Math.round(100 - (a.actionPrice / a.price) * 100) : 0;
-    const discountB = b.actionPrice ? 
-      Math.round(100 - (b.actionPrice / b.price) * 100) : 0;
-    return discountB - discountA;
-  }
-  return 0;
-})
+      if (sortBy === "rating-desc") return b.avgRating - a.avgRating;
+      if (sortBy === "rating-asc") return a.avgRating - b.avgRating;
+      if (sortByDiscount) {
+        const discountA = a.actionPrice ? 
+          Math.round(100 - (a.actionPrice / a.price) * 100) : 0;
+        const discountB = b.actionPrice ? 
+          Math.round(100 - (b.actionPrice / b.price) * 100) : 0;
+        return discountB - discountA;
+      }
+      return 0;
+    });
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -282,71 +194,70 @@ const filtered = products
   };
 
   const [user, setUser] = useState(null);
-    useEffect(() => {
-      const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-        setUser(firebaseUser);
-      });
-      return () => unsubscribe();
-    }, []);
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
-    const fetchUserLists = async (uid) => {
-      const snapshot = await getDocs(collection(firestore, "users", uid, "lists"));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const fetchUserLists = async (uid) => {
+    const snapshot = await getDocs(collection(firestore, "users", uid, "lists"));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  };
+
+  const addItemToList = async (userId, listId, product) => {
+    const ref = doc(firestore, "users", userId, "lists", listId);
+    const listSnap = await getDocs(collection(firestore, "users", userId, "lists"));
+    const targetList = listSnap.docs.find(doc => doc.id === listId);
+    if (!targetList) return;
+
+    const listData = targetList.data();
+    const existingItems = listData.items || [];
+
+    const itemExists = existingItems.some(item => item.name === product.name);
+    if (itemExists) {
+      toast.error("Ta izdelek je že na seznamu.");
+      return;
+    }
+
+    const newItem = {
+      id: Date.now(),
+      name: product.name,
+      amount: "",
+      done: false,
+      store: product.store || "",
+      price: parseFloat((product.actionPrice || product.price || "0").toString().replace(",", ".")) || 0,
     };
 
-    const addItemToList = async (userId, listId, product) => {
-      const ref = doc(firestore, "users", userId, "lists", listId);
-      const listSnap = await getDocs(collection(firestore, "users", userId, "lists"));
-      const targetList = listSnap.docs.find(doc => doc.id === listId);
-      if (!targetList) return;
+    const updatedItems = [...existingItems, newItem];
+    await updateDoc(ref, { items: updatedItems });
+    toast.success("Izdelek je bil uspešno dodan!");
+  };
 
-      const listData = targetList.data();
-      const existingItems = listData.items || [];
+  const [showDialog, setShowDialog] = useState(false);
+  const [userLists, setUserLists] = useState([]);
+  const [selectedListId, setSelectedListId] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
-      const itemExists = existingItems.some(item => item.name === product.name);
-     if (itemExists) {
-        toast.error("Ta izdelek je že na seznamu.");
-        return;
-      }
+  const openDialog = async (product) => {
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error("Za uporabo te funkcije se moraš prijaviti.");
+      return;
+    }
 
-      const newItem = {
-        id: Date.now(),
-        name: product.name,
-        amount: "",
-        done: false,
-        store: product.store || "",
-        price: parseFloat((product.actionPrice || product.price || "0").toString().replace(",", ".")) || 0,
-      };
+    const lists = await fetchUserLists(user.uid);
+    if (lists.length === 0) {
+      toast("Nimaš še ustvarjenih seznamov.", { icon: "ℹ️" });
+      return;
+    }
 
-
-      const updatedItems = [...existingItems, newItem];
-      await updateDoc(ref, { items: updatedItems });
-      toast.success("Izdelek je bil uspešno dodan!");
-    };
-
-    const [showDialog, setShowDialog] = useState(false);
-    const [userLists, setUserLists] = useState([]);
-    const [selectedListId, setSelectedListId] = useState("");
-    const [selectedProduct, setSelectedProduct] = useState(null);
-
-    const openDialog = async (product) => {
-      const user = auth.currentUser;
-      if (!user) {
-        toast.error("Za uporabo te funkcije se moraš prijaviti.");
-        return;
-      }
-
-      const lists = await fetchUserLists(user.uid);
-      if (lists.length === 0) {
-        toast("Nimaš še ustvarjenih seznamov.", { icon: "ℹ️" });
-        return;
-      }
-
-      setUserLists(lists);
-      setSelectedProduct(product);
-      setSelectedListId(lists[0].id);
-      setShowDialog(true);
-    };
+    setUserLists(lists);
+    setSelectedProduct(product);
+    setSelectedListId(lists[0].id);
+    setShowDialog(true);
+  };
 
   return (
     <>
@@ -367,232 +278,248 @@ const filtered = products
       <PageTitle heading="Seznam izdelkov" />
       <br />
 
-      <div className="container mx-auto flex flex-col-reverse gap-6 px-4 md:flex-row">
-        <aside className="w-full shrink-0 md:w-1/4">
-          <Card className="mb-6">
-            <CardHeader className="bg-blue-gray-50 rounded-t-lg">
-              <Typography variant="h5" color="blue-gray" className="font-semibold">Filtri</Typography>
-            </CardHeader>
-            <CardBody className="space-y-6">
-              <div>
-                <Typography variant="small" className="block mb-2 font-medium">Išči izdelek</Typography>
-                <Input variant="outlined" size="md" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Vnesi ime..." />
-              </div>
+      <div className="container mx-auto px-4">
+        {/* Gumb za prikaz filtrov samo v mobilnem pogledu */}
+        <div className="md:hidden mb-4">
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center justify-center gap-2"
+          >
+            <FunnelIcon className="h-5 w-5" />
+            {showFilters ? 'Skrij filtre' : 'Prikaži filtre'}
+            {showFilters ? <ChevronUpIcon className="h-5 w-5" /> : <ChevronDownIcon className="h-5 w-5" />}
+          </Button>
+        </div>
 
-              <div>
-                <Typography variant="small" className="block mb-2 font-medium">Kategorije</Typography>
-                <div className="flex flex-col gap-1.5">
-                  {categories.map(({ name }) => (
-                    <Checkbox key={name} label={name} checked={selectedCats.includes(name)} onChange={() => toggleCat(name)} />
-                  ))}
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Filtri - prikazani vedno v desktop pogledu, v mobilnem pogledu samo če je showFilters true */}
+          <aside className={`w-full md:w-1/4 ${showFilters ? 'block' : 'hidden md:block'}`}>
+            <Card className="mb-6">
+              <CardHeader className="bg-blue-gray-50 rounded-t-lg mt-5">
+                <Typography variant="h5" color="blue-gray" className="font-semibold">Filtri</Typography>
+              </CardHeader>
+              <CardBody className="space-y-6">
+                <div>
+                  <Typography variant="small" className="block mb-2 font-medium">Išči izdelek</Typography>
+                  <Input variant="outlined" size="md" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Vnesi ime..." />
                 </div>
-              </div>
 
-              <div>
-                <Typography variant="small" className="block mb-2 font-medium">Trgovci</Typography>
-                <div className="flex flex-col gap-1.5">
-                  {["Mercator", "Tuš", "Jager", "Lidl", "Hofer"].map((store) => (
-                  <Checkbox key={store} label={store} checked={selectedStores.includes(store)} onChange={() => toggleStore(store)} />
-                ))}
+                <div>
+                  <Typography variant="small" className="block mb-2 font-medium">Kategorije</Typography>
+                  <div className="flex flex-col gap-1.5">
+                    {categories.map(({ name }) => (
+                      <Checkbox key={name} label={name} checked={selectedCats.includes(name)} onChange={() => toggleCat(name)} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-              
-              <div>
-                <Typography variant="small" className="block mb-2 font-medium">Posebne ponudbe</Typography>
-                <Checkbox
-                  label="Samo akcijski izdelki"
-                  checked={onlyDiscounted}
-                  onChange={() => setOnlyDiscounted(!onlyDiscounted)}
-                />
-                <Checkbox
-                  label="Razvrsti po največjih popustih"
-                  checked={sortByDiscount}
-                  onChange={() => {
-                    setSortByDiscount(!sortByDiscount);
-                    setSortBy(""); // Ponastavi druge načine razvrščanja
+
+                <div>
+                  <Typography variant="small" className="block mb-2 font-medium">Trgovci</Typography>
+                  <div className="flex flex-col gap-1.5">
+                    {["Mercator", "Tuš", "Jager", "Lidl", "Hofer"].map((store) => (
+                      <Checkbox key={store} label={store} checked={selectedStores.includes(store)} onChange={() => toggleStore(store)} />
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <Typography variant="small" className="block mb-2 font-medium">Posebne ponudbe</Typography>
+                  <Checkbox
+                    label="Samo akcijski izdelki"
+                    checked={onlyDiscounted}
+                    onChange={() => setOnlyDiscounted(!onlyDiscounted)}
+                  />
+                  <Checkbox
+                    label="Razvrsti po največjih popustih"
+                    checked={sortByDiscount}
+                    onChange={() => {
+                      setSortByDiscount(!sortByDiscount);
+                      setSortBy("");
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <Typography variant="small" className="block mb-2 font-medium">Minimalna ocena</Typography>
+                  <Select 
+                    value={minRating.toString()} 
+                    onChange={(val) => setMinRating(parseFloat(val))}
+                    label="Izberi oceno"
+                  >
+                    <Option value="0">Vse ocene</Option>
+                    <Option value="1">1+ zvezdica</Option>
+                    <Option value="2">2+ zvezdici</Option>
+                    <Option value="3">3+ zvezdice</Option>
+                    <Option value="4">4+ zvezdice</Option>
+                    <Option value="4.5">4.5+ zvezdic</Option>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Typography variant="small" className="block mb-2 font-medium">Razvrsti po</Typography>
+                  <Select 
+                    value={sortBy} 
+                    onChange={(val) => setSortBy(val)}
+                    label="Razvrsti izdelke"
+                  >
+                    <Option value="">Privzeta razvrstitev</Option>
+                    <Option value="rating-desc">Najvišja ocena</Option>
+                    <Option value="rating-asc">Najnižja ocena</Option>
+                  </Select>
+                </div>
+
+                <div>
+                  <Typography variant="small" className="block mb-2 font-medium">Razpon cen (€)</Typography>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Input
+                      type="number"
+                      size="md"
+                      value={priceRange[0]}
+                      onChange={(e) => setPriceRange([+e.target.value, priceRange[1]])}
+                      className="w-24"
+                    />
+                    <span className="text-sm">–</span>
+                    <Input
+                      type="number"
+                      size="md"
+                      value={priceRange[1]}
+                      onChange={(e) => setPriceRange([priceRange[0], +e.target.value])}
+                      className="w-24"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={() => {
+                    setSearch("");
+                    setSelectedCats([]);
+                    setPriceRange([0, 100]);
+                    setOnlyDiscounted(false);
+                    setSelectedStores([]);
+                    setMinRating(0);
+                    setSortBy("");
+                    setInitialLoadDone(false);
+                    setSortByDiscount(false);
                   }}
-                />
-              </div>
-              
-              <div>
-                <Typography variant="small" className="block mb-2 font-medium">Minimalna ocena</Typography>
-                <Select 
-                  value={minRating.toString()} 
-                  onChange={(val) => setMinRating(parseFloat(val))}
-                  label="Izberi oceno"
                 >
-                  <Option value="0">Vse ocene</Option>
-                  <Option value="1">1+ zvezdica</Option>
-                  <Option value="2">2+ zvezdici</Option>
-                  <Option value="3">3+ zvezdice</Option>
-                  <Option value="4">4+ zvezdice</Option>
-                  <Option value="4.5">4.5+ zvezdic</Option>
-                </Select>
-              </div>
-              
-              <div>
-                <Typography variant="small" className="block mb-2 font-medium">Razvrsti po</Typography>
-                <Select 
-                  value={sortBy} 
-                  onChange={(val) => setSortBy(val)}
-                  label="Razvrsti izdelke"
-                >
-                  <Option value="">Privzeta razvrstitev</Option>
-                  <Option value="rating-desc">Najvišja ocena</Option>
-                  <Option value="rating-asc">Najnižja ocena</Option>
-                </Select>
-              </div>
+                  Počisti filtre
+                </Button>
+              </CardBody>
+            </Card>
+          </aside>
 
-              <div>
-                <Typography variant="small" className="block mb-2 font-medium">Razpon cen (€)</Typography>
-                <div className="flex flex-wrap gap-2 items-center">
-                  <Input
-                    type="number"
-                    size="md"
-                    value={priceRange[0]}
-                    onChange={(e) => setPriceRange([+e.target.value, priceRange[1]])}
-                    className="w-24"
-                  />
-                  <span className="text-sm">–</span>
-                  <Input
-                    type="number"
-                    size="md"
-                    value={priceRange[1]}
-                    onChange={(e) => setPriceRange([priceRange[0], +e.target.value])}
-                    className="w-24"
-                  />
-                </div>
-              </div>
+          <section className="flex-1">
+            {paginated.length === 0 ? (
+              <Typography className="text-center text-gray-500">Ni najdenih izdelkov.</Typography>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {paginated.map((p, index) => {
+                    const hasDiscount = p.actionPrice != null && p.actionPrice !== p.price;
+                    const discount = hasDiscount
+                      ? Math.round(100 - (p.actionPrice / p.price) * 100)
+                      : 0;
 
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={() => {
-                  setSearch("");
-                  setSelectedCats([]);
-                  setPriceRange([0, 100]);
-                  setOnlyDiscounted(false);
-                  setSelectedStores([]);
-                  setMinRating(0);
-                  setSortBy("");
-                  setInitialLoadDone(false);
-                  setSortByDiscount(false);
-                }}
-              >
-                Počisti filtre
-              </Button>
-            </CardBody>
-          </Card>
-        </aside>
-
-        <section className="flex-1">
-          {paginated.length === 0 ? (
-            <Typography className="text-center text-gray-500">Ni najdenih izdelkov.</Typography>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {paginated.map((p, index) => {
-                  const hasDiscount = p.actionPrice != null && p.actionPrice !== p.price;
-                  const discount = hasDiscount
-                    ? Math.round(100 - (p.actionPrice / p.price) * 100)
-                    : 0;
-
-                  return (
-                    <Card key={index} className="relative overflow-hidden">
-                    
-                      {hasDiscount && (
-                        <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md font-semibold z-10">
-                          -{discount}%
-                        </span>
-                      )}
-
-                      <CardHeader floated={false} className="h-36 flex items-center justify-center bg-white">
-                        <img
-                          src={
-                            p.image?.startsWith("http")
-                              ? p.image
-                              : p.store === "Hofer"
-                              ? "/img/HOFER.png"
-                              : "/img/no-image.png"
-                          }
-                          alt={p.name}
-                          className="max-h-28 w-auto object-contain"
-                        />
-                      </CardHeader>
-                        
-                      <CardBody className="pb-4">
-                        <Typography variant="h5" className="mb-2 font-bold">
-                          {p.name}
-                        </Typography>
-                        
-                        <Typography variant="paragraph" className="mb-2 text-blue-gray-600">
-                          {categorize(p)} – {p.store || "Neznana trgovina"}
-                        </Typography>
-                        
-                        <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
-                          {hasDiscount ? (
-                            <>
-                              <span className="line-through text-gray-500">
-                                {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                              </span>
-                              <span className="text-red-600 font-bold">
-                                {(parseFloat(p.actionPrice?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-black font-bold">
-                              {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
-                            </span>
-                          )}
-
-                          {p.avgRating > 0 && (
-                            <div className="flex justify-end">
-                              <span className="text-yellow-400 flex items-center gap-1">
-                                {p.avgRating.toFixed(1)}
-                                <StarIcon className="h-6 w-6 text-yellow-400" />
-                              </span>
-                            </div>
-                          )}
-                        </Typography>
-                        
-                        <div className="mb-2">
-                          <RouterLink to={`/products/${p._id}`}>
-                            <Button size="sm" className="w-full">
-                              Več
-                            </Button>
-                          </RouterLink>
-                        </div>
-                        
-                        {user && (
-                          <div className="mb-4">
-                            <Button
-                              size="sm"
-                              color="green"
-                              className="w-full"
-                              onClick={() => openDialog(p)}
-                            >
-                              Dodaj v seznam
-                            </Button>
-                          </div>
+                    return (
+                      <Card key={index} className="relative overflow-hidden">
+                      
+                        {hasDiscount && (
+                          <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md font-semibold z-10">
+                            -{discount}%
+                          </span>
                         )}
 
-                        <br />
-                      
-                        <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
-                          Cena posodobljena: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
-                          <UpdatedBadge updatedAt={p.updatedAt} />
-                        </Typography>
-                      </CardBody>
-                    </Card>
-                  );
-                })}
+                        <CardHeader floated={false} className="h-36 flex items-center justify-center bg-white">
+                          <img
+                            src={
+                              p.image?.startsWith("http")
+                                ? p.image
+                                : p.store === "Hofer"
+                                ? "/img/HOFER.png"
+                                : "/img/no-image.png"
+                            }
+                            alt={p.name}
+                            className="max-h-28 w-auto object-contain"
+                          />
+                        </CardHeader>
+                          
+                        <CardBody className="pb-4">
+                          <Typography variant="h5" className="mb-2 font-bold">
+                            {p.name}
+                          </Typography>
+                          
+                          <Typography variant="paragraph" className="mb-2 text-blue-gray-600">
+                            {categorize(p)} – {p.store || "Neznana trgovina"}
+                          </Typography>
+                          
+                          <Typography variant="h6" className="mb-2 font-semibold flex items-center gap-2">
+                            {hasDiscount ? (
+                              <>
+                                <span className="line-through text-gray-500">
+                                  {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                                </span>
+                                <span className="text-red-600 font-bold">
+                                  {(parseFloat(p.actionPrice?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-black font-bold">
+                                {(parseFloat(p.price?.toString().replace(",", ".")) || 0).toFixed(2)} €
+                              </span>
+                            )}
 
-              </div>
-              {renderPagination()}
-              <div className="h-20" />
-            </>
-          )}
-        </section>
+                            {p.avgRating > 0 && (
+                              <div className="flex justify-end">
+                                <span className="text-yellow-400 flex items-center gap-1">
+                                  {p.avgRating.toFixed(1)}
+                                  <StarIcon className="h-6 w-6 text-yellow-400" />
+                                </span>
+                              </div>
+                            )}
+                          </Typography>
+                          
+                          <div className="mb-2">
+                            <RouterLink to={`/products/${p._id}`}>
+                              <Button size="sm" className="w-full">
+                                Več
+                              </Button>
+                            </RouterLink>
+                          </div>
+                          
+                          {user && (
+                            <div className="mb-4">
+                              <Button
+                                size="sm"
+                                color="green"
+                                className="w-full"
+                                onClick={() => openDialog(p)}
+                              >
+                                Dodaj v seznam
+                              </Button>
+                            </div>
+                          )}
+
+                          <br />
+                        
+                          <Typography variant="paragraph" className="mb-4 text-blue-gray-600">
+                            Cena posodobljena: {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('sl-SI') : "ni podatka"}
+                            <UpdatedBadge updatedAt={p.updatedAt} />
+                          </Typography>
+                        </CardBody>
+                      </Card>
+                    );
+                  })}
+                </div>
+                {renderPagination()}
+                <div className="h-20" />
+              </>
+            )}
+          </section>
+        </div>
 
         <Dialog open={showDialog} handler={() => setShowDialog(false)}>
           <DialogHeader>Dodaj v nakupovalni seznam</DialogHeader>
