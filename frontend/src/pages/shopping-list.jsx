@@ -439,29 +439,41 @@ const fetchBestMatches = async (items) => {
 
 useEffect(() => {
   const generateAndFetchRecommendations = async () => {
-    if (!user || !lists.length) return;
+    if (!user || !lists.length || !selectedListId) return;
 
     const itemMap = new Map();
-    lists.forEach(list => {
+
+    // Preglej vse sezname razen trenutno izbranega
+    lists.forEach((list) => {
       if (list.id === selectedListId) return;
-      (list.items || []).forEach(item => {
-        const key = item.name?.trim();
+
+      (list.items || []).forEach((item) => {
+        const key = item.name?.trim().toLowerCase();
         if (!key) return;
+
         const count = itemMap.get(key)?.count || 0;
-        itemMap.set(key, { name: key, count: count + 1 });
+        itemMap.set(key, {
+          name: item.name.trim(),
+          count: count + 1
+        });
       });
     });
 
+    // Pridobi 5 najpogosteje uporabljenih izdelkov
     const topItems = Array.from(itemMap.values())
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+      .slice(0, 5);
 
+    // Pridobi najboljše cene / podrobnosti zanje
     const detailed = await fetchBestMatches(topItems);
+
     setLocalRecommendations(detailed);
   };
 
   generateAndFetchRecommendations();
 }, [user, lists, selectedListId]);
+
+
 
 useEffect(() => {
   if (
