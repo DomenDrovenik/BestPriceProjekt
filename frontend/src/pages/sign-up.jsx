@@ -12,12 +12,12 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
-  TwitterAuthProvider,
   onAuthStateChanged,
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 
 import { auth, firestore } from "../firebase.js";
+import toast from "react-hot-toast"; // <-- uvozimo toast
 
 export function SignUp() {
   const [email, setEmail] = useState("");
@@ -29,7 +29,7 @@ export function SignUp() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // If already logged in, redirect home
+  // Če je uporabnik že prijavljen, ga preusmerimo domov
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -43,11 +43,11 @@ export function SignUp() {
     e.preventDefault();
 
     if (!agreeTC) {
-      setError("You must agree to the Terms and Conditions.");
+      setError("Morate se strinjati s Pogoji in določili.");
       return;
     }
     if (!name.trim() || !surname.trim()) {
-      setError("Please enter both name and surname.");
+      setError("Prosimo vnesite ime in priimek.");
       return;
     }
 
@@ -60,7 +60,7 @@ export function SignUp() {
         password
       );
 
-      // write full profile (including name & surname) to Firestore
+      // zapišemo celoten profil (vključno z imenom in priimkom) v Firestore
       await setDoc(doc(firestore, "users", user.uid), {
         email: user.email,
         name: name.trim(),
@@ -68,8 +68,13 @@ export function SignUp() {
         createdAt: new Date(),
       });
 
+      // Uspešno registriran → prikažemo toast in preusmerimo domov
+      toast.success("Registracija uspešna! Prijavljeni ste.");
       navigate("/", { replace: true });
     } catch (e) {
+      console.error("Napaka pri registraciji:", e);
+      // Prikažemo kratko obvestilo o napaki
+      toast.error("Napaka pri registraciji: " + e.message);
       setError(e.message);
     } finally {
       setLoading(false);
@@ -83,8 +88,7 @@ export function SignUp() {
       const provider = new GoogleAuthProvider();
       const { user } = await signInWithPopup(auth, provider);
 
-      // for social sign-in we only get displayName as a full name,
-      // you could split it into name/surname or store as-is:
+      // za social sign-in včasih dobimo le displayName (polno ime)
       const [first = "", ...rest] = (user.displayName || "").split(" ");
       const last = rest.join(" ");
 
@@ -94,36 +98,17 @@ export function SignUp() {
           email: user.email,
           name: first,
           surname: last,
+          photoURL: user.photoURL || "",
           createdAt: new Date(),
         },
         { merge: true }
       );
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleTwitterSignIn = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      const provider = new TwitterAuthProvider();
-      const { user } = await signInWithPopup(auth, provider);
-
-      // Twitter doesn't always supply displayName reliably;
-      await setDoc(
-        doc(firestore, "users", user.uid),
-        {
-          email: user.email,
-          name: user.displayName || "",
-          surname: "",
-          createdAt: new Date(),
-        },
-        { merge: true }
-      );
+      toast.success("Prijava z Googlom uspešna!");
+      navigate("/", { replace: true });
     } catch (e) {
+      console.error("Google prijava napaka:", e);
+      toast.error("Napaka pri prijavi z Googlom: " + e.message);
       setError(e.message);
     } finally {
       setLoading(false);
@@ -260,24 +245,7 @@ export function SignUp() {
               disabled={loading}
             >
               {/* Google SVG */}
-              <span>Prijava z Google</span>
-            </Button>
-
-            <Button
-              size="lg"
-              color="white"
-              className="flex items-center gap-2 justify-center shadow-md"
-              fullWidth
-              onClick={handleTwitterSignIn}
-              disabled={loading}
-            >
-              <img
-                src="/img/twitter-logo.svg"
-                height={24}
-                width={24}
-                alt="Twitter"
-              />
-              <span>Prijava z Twitter</span>
+              <span>Registracija z Google</span>
             </Button>
           </div>
 
