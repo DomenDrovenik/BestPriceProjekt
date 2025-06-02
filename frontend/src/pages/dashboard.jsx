@@ -98,7 +98,7 @@ export function Dashboard() {
       </section>
       <br />
       <section className="container mx-auto py-8 px-4">
-        <div className="w-full h-[450px]">
+        <div className="w-full min-h-[450px]">
           <CategoryDiscountShareChart />
         </div>
       </section>
