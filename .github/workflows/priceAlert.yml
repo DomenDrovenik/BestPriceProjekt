@@ -8,6 +8,9 @@ on:
 jobs:
   run-scraper:
     runs-on: ubuntu-latest
+    env:
+      SOURCE_URI: ${{ secrets.SOURCE_URI }}
+      TARGET_URI: ${{ secrets.TARGET_URI }}
 
     steps:
       - name: Checkout repo
