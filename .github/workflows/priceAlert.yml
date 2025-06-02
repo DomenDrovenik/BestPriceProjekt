@@ -9,8 +9,9 @@ jobs:
   run-scraper:
     runs-on: ubuntu-latest
     env:
-      SOURCE_URI: ${{ secrets.SOURCE_URI }}
-      TARGET_URI: ${{ secrets.TARGET_URI }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      SERVICE_ACCOUNT_KEY: ${{ secrets.SERVICE_ACCOUNT_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: Checkout repo
