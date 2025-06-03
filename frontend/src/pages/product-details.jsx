@@ -34,6 +34,8 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth } from "../firebase";
 import { firestore } from "../firebase";
 import { UserIcon } from "@heroicons/react/24/outline";
+import toast from "react-hot-toast";
+
 
 export function ProductDetails() {
     const { id } = useParams();
@@ -150,85 +152,107 @@ useEffect(() => {
       </div>
     );
   }
+
   const handleCommentSubmit = async () => {
-  if (!currentUser || newRating === 0 || hasRated) return;
-
-  const comment = {
-    userId: currentUser.uid,
-    user: {
-      name: currentUserData?.name || "Neznan uporabnik",
-      surname: currentUserData?.surname || "",
-      avatar: currentUser?.photoURL || "",
-    },
-    rating: newRating,
-    text: newComment.trim(), 
-    date: new Date().toISOString(),
-  };
-
-  try {
-    const res = await fetch(`http://localhost:3000/api/products/${id}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(comment),
-    });
-
-    if (res.status === 409) {
-      alert("Že si ocenil ta izdelek.");
+    if (!currentUser || !currentUserData) {
+      toast.error("Za dodajanje komentarjev se moraš prijaviti.");
       return;
     }
 
-    setComments([...comments, comment]);
-    setNewComment("");
-    setNewRating(0);
-    setHasRated(true);
-  } catch (err) {
-    console.error("Napaka pri pošiljanju komentarja:", err);
-  }
-};
-
-const handleEditSubmit = async (userId) => {
-  try {
-    const res = await fetch(`http://localhost:3000/api/products/${id}/comments/${userId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        rating: editRating,
-        text: editCommentText,
-      }),
-    });
-
-    if (res.ok) {
-      const updated = comments.map(c =>
-        c.userId === userId ? { ...c, rating: editRating, text: editCommentText, date: new Date().toISOString() } : c
-      );
-      setComments(updated);
-      setEditing(null);
+    if (newRating === 0) {
+      toast("Izberi oceno zvezdic.", { icon: "⭐" });
+      return;
     }
-  } catch (err) {
-    console.error("Napaka pri urejanju komentarja:", err);
-  }
-};
 
-const handleDeleteComment = async (userId) => {
-  toggleOpen();
-
-  try {
-    const res = await fetch(`http://localhost:3000/api/products/${id}/comments/${userId}`, {
-      method: "DELETE",
-    });
-
-    if (res.ok) {
-      setComments(comments.filter(c => c.userId !== userId));
-      setHasRated(false);
+    if (hasRated) {
+      toast.error("Že si ocenil ta izdelek.");
+      return;
     }
-  } catch (err) {
-    console.error("Napaka pri brisanju komentarja:", err);
-  }
-};
 
+    const comment = {
+      userId: currentUser.uid,
+      user: {
+        name: currentUserData?.name || "Neznan uporabnik",
+        surname: currentUserData?.surname || "",
+        avatar: currentUser?.photoURL || "",
+      },
+      rating: newRating,
+      text: newComment.trim(),
+      date: new Date().toISOString(),
+    };
 
+    try {
+      const res = await fetch(`http://localhost:3000/api/products/${id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(comment),
+      });
 
+      if (res.status === 409) {
+        toast.error("Že si ocenil ta izdelek.");
+        return;
+      }
 
+      setComments([...comments, comment]);
+      setNewComment("");
+      setNewRating(0);
+      setHasRated(true);
+      toast.success("Komentar uspešno dodan!");
+    } catch (err) {
+      console.error("Napaka pri pošiljanju komentarja:", err);
+      toast.error("Napaka pri dodajanju komentarja.");
+    }
+  };
+
+  const handleEditSubmit = async (userId) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/products/${id}/comments/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: editRating,
+          text: editCommentText,
+        }),
+      });
+
+      if (res.ok) {
+        const updated = comments.map(c =>
+          c.userId === userId
+            ? { ...c, rating: editRating, text: editCommentText, date: new Date().toISOString() }
+            : c
+        );
+        setComments(updated);
+        setEditing(null);
+        toast.success("Komentar uspešno posodobljen.");
+      } else {
+        toast.error("Napaka pri posodabljanju komentarja.");
+      }
+    } catch (err) {
+      console.error("Napaka pri urejanju komentarja:", err);
+      toast.error("Prišlo je do napake pri povezavi s strežnikom.");
+    }
+  };
+
+  const handleDeleteComment = async (userId) => {
+    toggleOpen();
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/products/${id}/comments/${userId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setComments(comments.filter(c => c.userId !== userId));
+        setHasRated(false);
+        toast.success("Komentar je bil izbrisan.");
+      } else {
+        toast.error("Napaka: komentarja ni bilo mogoče izbrisati.");
+      }
+    } catch (err) {
+      console.error("Napaka pri brisanju komentarja:", err);
+      toast.error("Napaka pri povezavi s strežnikom.");
+    }
+  };
 
   return (
     <>
