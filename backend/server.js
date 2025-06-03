@@ -17,7 +17,8 @@ app.use(
       if (
         !origin ||
         origin === "http://localhost:5173" ||
-        origin === "https://bestpriceapp.me"
+        origin === "https://bestpriceapp.me" ||
+        origin === "https://bestprice-4c8cd.firebaseapp.com" ||
       ) {
         callback(null, true);
       } else {
