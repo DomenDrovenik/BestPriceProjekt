@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Card,
   CardBody,
@@ -26,6 +26,7 @@ import {
   FunnelIcon
 } from "@heroicons/react/24/solid";
 import useSWR from 'swr';
+
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
 export function Products() {
@@ -34,13 +35,19 @@ export function Products() {
   const [priceRange, setPriceRange] = useState([0, 100]);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStores, setSelectedStores] = useState([]);
-  const itemsPerPage = 24;
   const [onlyDiscounted, setOnlyDiscounted] = useState(false);
   const [sortBy, setSortBy] = useState("");
   const [minRating, setMinRating] = useState(0);
   const [sortByDiscount, setSortByDiscount] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
-  const [showFilters, setShowFilters] = useState(false); 
+  const [showFilters, setShowFilters] = useState(false);
+  const [user, setUser] = useState(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [userLists, setUserLists] = useState([]);
+  const [selectedListId, setSelectedListId] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const itemsPerPage = 24;
   const [searchParams] = useSearchParams();
 
   const { data: productsData, error } = useSWR(
@@ -48,30 +55,73 @@ export function Products() {
     fetcher
   );
 
-  if (error) {
-    return <Typography color="red" className="text-center py-4">
-      Napaka pri nalaganju izdelkov.
-    </Typography>;
-  }
-  if (!productsData) {
-    return <Typography className="text-center py-4">
-      Nalagam izdelke…
-    </Typography>;
-  }
+  
+  const toggleStore = useCallback((store) => {
+    setSelectedStores((prev) =>
+      prev.includes(store) ? prev.filter((s) => s !== store) : [...prev, store]
+    );
+  }, []);
 
-  const products = React.useMemo(
-    () => productsData.map((p) => {
-      const avgRating = p.comments?.length
-        ? Number(
-            (p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length)
-            .toFixed(1)
-          )
-        : 0;
-      return { ...p, avgRating };
-    }),
-    [productsData]
-  );
+  const toggleCat = useCallback((cat) => {
+    setSelectedCats((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  }, []);
 
+  const fetchUserLists = useCallback(async (uid) => {
+    const snapshot = await getDocs(collection(firestore, "users", uid, "lists"));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }, []);
+
+  const addItemToList = useCallback(async (userId, listId, product) => {
+    const ref = doc(firestore, "users", userId, "lists", listId);
+    const listSnap = await getDocs(collection(firestore, "users", userId, "lists"));
+    const targetList = listSnap.docs.find(doc => doc.id === listId);
+    if (!targetList) return;
+
+    const listData = targetList.data();
+    const existingItems = listData.items || [];
+
+    const itemExists = existingItems.some(item => item.name === product.name);
+    if (itemExists) {
+      toast.error("Ta izdelek je že na seznamu.");
+      return;
+    }
+
+    const newItem = {
+      id: Date.now(),
+      name: product.name,
+      amount: "",
+      done: false,
+      store: product.store || "",
+      price: parseFloat((product.actionPrice || product.price || "0").toString().replace(",", ".")) || 0,
+    };
+
+    const updatedItems = [...existingItems, newItem];
+    await updateDoc(ref, { items: updatedItems });
+    toast.success("Izdelek je bil uspešno dodan!");
+  }, []);
+
+  const openDialog = useCallback(async (product) => {
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error("Za uporabo te funkcije se moraš prijaviti.");
+      return;
+    }
+
+    const lists = await fetchUserLists(user.uid);
+    if (lists.length === 0) {
+      toast("Nimaš še ustvarjenih seznamov.", { icon: "ℹ️" });
+      return;
+    }
+
+    setUserLists(lists);
+    setSelectedProduct(product);
+    setSelectedListId(lists[0].id);
+    setShowDialog(true);
+  }, [fetchUserLists]);
+
+  
   useEffect(() => {
     const initialCat = searchParams.get("category");
     if (initialCat) {
@@ -88,17 +138,43 @@ export function Products() {
     setCurrentPage(1);
   }, [search, selectedCats, priceRange, minRating, sortBy]);
 
-  const toggleStore = (store) => {
-    setSelectedStores((prev) =>
-      prev.includes(store) ? prev.filter((s) => s !== store) : [...prev, store]
-    );
-  };
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  const toggleCat = (cat) => {
-    setSelectedCats((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
-  };
+   const products = useMemo(() => {
+    if (!productsData) return [];
+    
+    return productsData.map((p) => {
+      const avgRating = p.comments?.length
+        ? Number(
+            (p.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / p.comments.length
+          ).toFixed(1)  
+        ): 0;
+      return { ...p, avgRating };
+    });
+  }, [productsData]);
+
+
+  
+  if (error) {
+    return <Typography color="red" className="text-center py-4">
+      Napaka pri nalaganju izdelkov.
+    </Typography>;
+  }
+
+  if (!productsData) {
+    return <Typography className="text-center py-4">
+      Nalagam izdelke…
+    </Typography>;
+  }
+
+  
+  
+ 
 
   const normalizeCategory = (category, subcategory) => {
     const cat = (category || "").toLowerCase();
@@ -115,7 +191,7 @@ export function Products() {
     if (cat.includes("pijače") || sub.includes("sokovi")) return "Pijače";
     if (cat.includes("bio") || sub.includes("zdrava")) return "Bio izdelki";
     if (cat.includes("delikatesni") || cat.includes("gotove jedi") || cat.includes("delikatesa") || sub.includes("pripravljene")) return "Pripravljene jedi";
-     if ( cat.includes("kava") || sub.includes("zajtrk") || sub.includes("kosmiči") || sub.includes("marmelada") ||
+    if (cat.includes("kava") || sub.includes("zajtrk") || sub.includes("kosmiči") || sub.includes("marmelada") ||
       sub.includes("namazi") || sub.includes("čaj") || sub.includes("kava") ||
       sub.includes("maslo") || sub.includes("med") || sub.includes("nutella") ||
       sub.includes("prepečenci") || sub.includes("toasti") || sub.includes("sirni namazi") ||
@@ -193,72 +269,6 @@ export function Products() {
     );
   };
 
-  const [user, setUser] = useState(null);
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      setUser(firebaseUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const fetchUserLists = async (uid) => {
-    const snapshot = await getDocs(collection(firestore, "users", uid, "lists"));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  };
-
-  const addItemToList = async (userId, listId, product) => {
-    const ref = doc(firestore, "users", userId, "lists", listId);
-    const listSnap = await getDocs(collection(firestore, "users", userId, "lists"));
-    const targetList = listSnap.docs.find(doc => doc.id === listId);
-    if (!targetList) return;
-
-    const listData = targetList.data();
-    const existingItems = listData.items || [];
-
-    const itemExists = existingItems.some(item => item.name === product.name);
-    if (itemExists) {
-      toast.error("Ta izdelek je že na seznamu.");
-      return;
-    }
-
-    const newItem = {
-      id: Date.now(),
-      name: product.name,
-      amount: "",
-      done: false,
-      store: product.store || "",
-      price: parseFloat((product.actionPrice || product.price || "0").toString().replace(",", ".")) || 0,
-    };
-
-    const updatedItems = [...existingItems, newItem];
-    await updateDoc(ref, { items: updatedItems });
-    toast.success("Izdelek je bil uspešno dodan!");
-  };
-
-  const [showDialog, setShowDialog] = useState(false);
-  const [userLists, setUserLists] = useState([]);
-  const [selectedListId, setSelectedListId] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState(null);
-
-  const openDialog = async (product) => {
-    const user = auth.currentUser;
-    if (!user) {
-      toast.error("Za uporabo te funkcije se moraš prijaviti.");
-      return;
-    }
-
-    const lists = await fetchUserLists(user.uid);
-    if (lists.length === 0) {
-      toast("Nimaš še ustvarjenih seznamov.", { icon: "ℹ️" });
-      return;
-    }
-
-    setUserLists(lists);
-    setSelectedProduct(product);
-    setSelectedListId(lists[0].id);
-    setShowDialog(true);
-  };
-
   return (
     <>
       <div className="relative flex h-[50vh] content-center items-center justify-center pt-16 pb-16">
@@ -279,7 +289,6 @@ export function Products() {
       <br />
 
       <div className="container mx-auto px-4">
-        {/* Gumb za prikaz filtrov samo v mobilnem pogledu */}
         <div className="md:hidden mb-4">
           <Button
             fullWidth
@@ -294,7 +303,6 @@ export function Products() {
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Filtri - prikazani vedno v desktop pogledu, v mobilnem pogledu samo če je showFilters true */}
           <aside className={`w-full md:w-1/4 ${showFilters ? 'block' : 'hidden md:block'}`}>
             <Card className="mb-6">
               <CardHeader className="bg-blue-gray-50 rounded-t-lg mt-5">
@@ -426,7 +434,6 @@ export function Products() {
 
                     return (
                       <Card key={index} className="relative overflow-hidden">
-                      
                         {hasDiscount && (
                           <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md font-semibold z-10">
                             -{discount}%

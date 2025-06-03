@@ -136,9 +136,7 @@ async function ScrapeTus() {
 //--------------------------------------------------------------------
 
 async function runTusScraper() {
-  const uri =
-    process.env.DATABASE_URL ||
-    "mongodb+srv://ddfaksstuff:Kcau2hakePYZ1hRH@cluster0.bwlvpsm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+  const uri = process.env.DATABASE_URL;
 
   const client = new MongoClient(uri, {
     serverApi: {
@@ -151,7 +149,7 @@ async function runTusScraper() {
 
   try {
     await client.connect();
-    const db = client.db("BestPrice");
+    const db = client.db(process.env.DB_NAME);
     const collection = db.collection("tus");
 
     const scrapedItems = await ScrapeTus();

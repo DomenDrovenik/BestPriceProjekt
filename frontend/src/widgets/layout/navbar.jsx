@@ -22,6 +22,13 @@ function UserAvatar({ photoURL, alt, onClick }) {
   return (
     <div
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      onClick();
+    }
+  }} 
       className="
         w-10 h-10 rounded-full
         bg-white text-gray-500
@@ -87,7 +94,7 @@ export function Navbar({ brandName, routes, action }) {
 
   const navList = (
     <ul className="mb-4 mt-2 flex flex-col gap-2 text-inherit lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
-      {routes.map(({ name, path, icon, href, target }) => (
+      {routes.filter((r)=> r.showInNav).map(({ name, path, icon, href, target }) => (
         <Typography
           key={name}
           as="li"

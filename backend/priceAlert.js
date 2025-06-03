@@ -79,10 +79,10 @@ async function sendPriceAlertEmail(userEmail, product, targetPrice) {
       to: ["domen.drovenik@student.um.si"], //to: [`${userEmail}`],
       subject: `Cena za ${product.name} je padla!`,
       html: `
-        <h1>Cena za izdelek ${product.name} je padla pod ${targetPrice}!</h1>
+        <h1>Cena za izdelek ${product.name} je padla pod ${targetPrice}€!</h1>
         <p>Izdelek: ${product.name}</p>
         <img src="${product.image}" alt="${product.name}" /> </br>
-        <p>Trenutna cena: ${price}</p>
+        <p>Trenutna cena: ${price} €</p>
         <p>Oglejte si ponudbo na BestPrice.</p>
       `,
     });

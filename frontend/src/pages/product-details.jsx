@@ -285,18 +285,18 @@ const handleDeleteComment = async (userId) => {
             Kategorija: <strong>{product.category}</strong>
           </Typography>
           {product.comments && product.comments.length > 0 && (
-  <Typography
-    variant="small"
-    color="gray"
-    className="mb-4 flex justify-center items-center gap-1 "
-  >
-    Povprečna ocena: 
-    <span className="font-bold flex items-center gap-1 ml-1">
-      {(product.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / product.comments.length).toFixed(1)}
-      <StarIcon className="h-5 w-5 text-yellow-400" />
-    </span>
-  </Typography>
-)}
+            <Typography
+              variant="small"
+              color="gray"
+              className="mb-4 flex justify-center items-center gap-1 "
+            >
+              Povprečna ocena: 
+              <span className="font-bold flex items-center gap-1 ml-1">
+                {(product.comments.reduce((sum, c) => sum + (c.rating || 0), 0) / product.comments.length).toFixed(1)}
+                <StarIcon className="h-5 w-5 text-yellow-400" />
+              </span>
+            </Typography>
+          )}
           
         </CardBody>
       </Card>

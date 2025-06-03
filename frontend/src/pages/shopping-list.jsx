@@ -795,7 +795,7 @@ function parseQuantityMultiplier(amount) {
         {/* Trgovine (abecedno) */}
         {Object.keys(itemsGroupedByStore())
           .filter(key => key !== "__done__" && key !== "__noStore__")
-          .sort()
+          .sort((a, b) => a.localeCompare(b))
           .map(store => (
             <div key={store} className="mb-4">
               <Typography variant="small" className="font-bold text-gray-700 mb-1 border-b pb-1">
