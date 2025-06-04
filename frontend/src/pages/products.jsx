@@ -26,6 +26,7 @@ import {
   FunnelIcon
 } from "@heroicons/react/24/solid";
 import useSWR from 'swr';
+import { Footer } from "@/widgets/layout";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -562,6 +563,7 @@ export function Products() {
           </DialogFooter>
         </Dialog>
       </div>
+      <Footer />
     </>
   );
 }
