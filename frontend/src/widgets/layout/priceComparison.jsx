@@ -14,7 +14,7 @@ export function PriceComparison({ productName }) {
         // your backend endpoint should return something like:
         // [ { store: "Tuš", price: 3.99 }, { store: "Mercator", price: 4.10 }, … ]
         const res = await fetch(
-          `http://localhost:3000/api/compare-prices?name=${encodeURIComponent(productName)}`,
+          `https://bestpriceprojekt-production.up.railway.app/api/compare-prices?name=${encodeURIComponent(productName)}`,
             { cache: "no-store" }
         );
         if (!res.ok) throw new Error(`Status ${res.status}`);
