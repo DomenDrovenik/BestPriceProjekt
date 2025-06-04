@@ -96,6 +96,8 @@ useEffect(() => {
         try {
           // 1) Fetch product, which now includes previousPrices array
           const resP = await fetch(`https://bestpriceprojekt-production.up.railway.app/api/products/${id}`);
+          // const resP = await fetch(`http://localhost:3000/api/products/${id}`);
+
           const dataP = await resP.json();
           setProduct({
                ...dataP,

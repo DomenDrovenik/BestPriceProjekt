@@ -9,7 +9,7 @@ import {
   DialogBody,
   DialogFooter,
   Input,
-   
+   Checkbox
 } from '@material-tailwind/react';
 import { BellIcon,CheckCircleIcon } from '@heroicons/react/24/solid';
 
@@ -23,6 +23,7 @@ function PriceAlertsComponent({
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [emailOptIn, setEmailOptIn] = useState(true);
 
   const toggleOpen = () => {
     setOpen(prev => !prev);
@@ -32,9 +33,10 @@ function PriceAlertsComponent({
     }
   };
 
-  const startEdit = (id, current) => {
+  const startEdit = (id, current, currentEmailOptIn) => {
     setEditingId(id);
     setEditValue(current.toString());
+    setEmailOptIn(currentEmailOptIn ?? false);
   };
 
   const cancelEdit = () => {
@@ -47,7 +49,7 @@ function PriceAlertsComponent({
     if (isNaN(newPrice) || newPrice <= 0) {
       return alert('Vnesi veljavno ceno.');
     }
-    onUpdate && onUpdate(id, newPrice);
+    onUpdate && onUpdate(id, newPrice,emailOptIn);
     setEditingId(null);
     setEditValue('');
   };
@@ -68,7 +70,7 @@ function PriceAlertsComponent({
             alerts.filter(a => !a.triggered).map(a => (
               <div key={a.id} className="flex justify-between items-center py-1">
                 <span>
-                  {a.productName} <em>({a.targetPrice.toFixed(2)} €)</em>
+                  {a.productName} <em>({a.targetPrice.toFixed(2)} €)</em> <em><b>{a.emailNotification ? "✔️Email obvestilo vklopljeno" : "❌Email obvestilo izklopljeno"}</b></em>
                 </span>
               </div>
             ))
@@ -124,13 +126,18 @@ function PriceAlertsComponent({
                 <CardBody className="flex justify-between items-center">
                   <div>
                     <Typography className="font-medium">{a.productName}</Typography>
-                    {editingId === a.id ? (
+                    {editingId === a.id ? (<>
                       <Input
                         type="number"
                         size="sm"
                         value={editValue}
                         onChange={e => setEditValue(e.target.value)}
                       />
+                      <Checkbox
+                        label="Email obvestilo"
+                        checked={emailOptIn}
+                        onChange={() => setEmailOptIn(prev => !prev)}
+                      /></>
                     ) : (
                       <Typography variant="small" color="gray">
                         Cilj: {a.targetPrice.toFixed(2)} €
@@ -151,7 +158,7 @@ function PriceAlertsComponent({
                             size="sm"
                             color="blue"
                             variant="text"
-                            onClick={() => startEdit(a.id, a.targetPrice)}
+                            onClick={() => startEdit(a.id, a.targetPrice, a.emailNotification)}
                           >
                             Uredi
                           </Button>

@@ -115,14 +115,14 @@ export function Profile() {
     );
   };
 
-  const handleUpdate = async (alertId, newPrice) => {
+  const handleUpdate = async (alertId, newPrice, emailNotification) => {
     const user = auth.currentUser;
     if (!user) return;
     const ref = doc(firestore, "users", user.uid, "priceAlerts", alertId);
-    await updateDoc(ref, { targetPrice: newPrice });
+    await updateDoc(ref, { targetPrice: newPrice ,emailNotification});
     setAlerts(prev =>
       prev.map(a =>
-        a.id === alertId ? { ...a, targetPrice: newPrice } : a
+        a.id === alertId ? { ...a, targetPrice: newPrice,emailNotification} : a
       )
     );
   };

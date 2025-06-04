@@ -126,7 +126,13 @@ async function checkPriceAlerts() {
       if (currentPrice == null) continue;
 
       if (currentPrice <= alert.targetPrice) {
-        await sendPriceAlertEmail(userEmail, product, alert.targetPrice);
+        if (alert.emailNotification !== false) {
+          await sendPriceAlertEmail(userEmail, product, alert.targetPrice);
+        } else {
+          console.log(
+            `Email notifikacija izklopljena za ${userEmail}, alert ${alertId}`
+          );
+        }
 
         await firestore
           .collection("users")

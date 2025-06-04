@@ -1,5 +1,5 @@
 // src/components/PriceAlertButton.jsx
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Button,
   Dialog,
@@ -8,6 +8,7 @@ import {
   DialogFooter,
   Input,
   Typography,
+  Checkbox
 } from "@material-tailwind/react";
 import { BellIcon } from "@heroicons/react/24/solid";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -19,6 +20,8 @@ import toast from "react-hot-toast";
 export function PriceAlertButton({ product }) {
   const [open, setOpen] = useState(false);
   const [threshold, setThreshold] = useState("");
+  const [emailNotification, setEmailNotification] = useState(false);
+
 
   const toggleOpen = () => setOpen((o) => !o);
 
@@ -46,10 +49,12 @@ export function PriceAlertButton({ product }) {
         triggered: false,
         notified: false,
         seen: false,
+        emailNotification: emailNotification,
       });
 
       setOpen(false);
       setThreshold("");
+      setEmailNotification(false);
       toast.success("Opozorilo za ceno je bilo uspešno nastavljeno!");
     } catch (err) {
       console.error("Napaka pri shranjevanju alarma:", err);
@@ -81,6 +86,12 @@ export function PriceAlertButton({ product }) {
             value={threshold}
             onChange={(e) => setThreshold(e.target.value)}
           />
+          <Checkbox
+            label="Želim prejeti email obvestilo"
+            checked={emailNotification}
+            onChange={(e) => setEmailNotification(e.target.checked)}
+          />
+
         </DialogBody>
         <DialogFooter className="space-x-2">
           <Button variant="text" onClick={toggleOpen}>
