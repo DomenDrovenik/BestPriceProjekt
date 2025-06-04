@@ -128,38 +128,6 @@ app.get("/lidl", async (req, res) => {
   }
 });
 
-// app.get("/api/all-products", async (req, res) => {
-//   try {
-//     const tus = (await tusCollection.find({ active: true }).toArray()).map(
-//       (p) => ({
-//         ...p,
-//         store: "Tuš",
-//       })
-//     );
-//     const merkator = (await merkatorCollection.find({}).toArray()).map((p) => ({
-//       ...p,
-//       store: "Mercator",
-//     }));
-//     const jager = (await jagerCollection.find({}).toArray()).map((p) => ({
-//       ...p,
-//       store: "Jager",
-//     }));
-//     const lidl = (await lidlCollection.find({}).toArray()).map((p) => ({
-//       ...p,
-//       store: "Lidl",
-//     }));
-//     const hofer = (await hoferCollection.find({}).toArray()).map((p) => ({
-//       ...p,
-//       store: "Hofer",
-//     }));
-
-//     const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
-//     res.status(200).json(all);
-//   } catch (error) {
-//     console.error("Napaka pri pridobivanju vseh izdelkov:", error);
-//     res.status(500).json({ message: "Napaka na strežniku" });
-//   }
-// });
 app.get("/api/all-products", async (req, res) => {
   try {
     const now = new Date();
@@ -233,26 +201,27 @@ app.get("/api/all-products", async (req, res) => {
 app.get("/api/products/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    // validate it’s a proper ObjectId
+
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid product id" });
     }
+
     const oid = new ObjectId(id);
 
-    // search each collection in turn
     const collections = [
-      tusCollection,
-      merkatorCollection,
-      jagerCollection,
-      lidlCollection,
-      hoferCollection,
+      { name: "Tuš", col: tusCollection },
+      { name: "Mercator", col: merkatorCollection },
+      { name: "Jager", col: jagerCollection },
+      { name: "Lidl", col: lidlCollection },
+      { name: "Hofer", col: hoferCollection },
     ];
 
     let product = null;
-    for (const col of collections) {
+
+    for (const { name, col } of collections) {
       const doc = await col.findOne({ _id: oid });
       if (doc) {
-        product = doc;
+        product = { ...doc, store: name }; // dodamo ime trgovine
         break;
       }
     }
@@ -261,8 +230,7 @@ app.get("/api/products/:id", async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // stringify the ObjectId for the client
-    product._id = product._id.toString();
+    product._id = product._id.toString(); // za frontend
 
     res.status(200).json(product);
   } catch (error) {
@@ -466,6 +434,7 @@ app.get("/api/compare-prices", async (req, res) => {
     const doc = await findBestWithFuse(col, name);
     if (doc) {
       results.push({
+        id: doc._id.toString(),
         store: storeLabels[key] || key,
         price: doc.actionPrice != null ? doc.actionPrice : doc.price,
         image: doc.image,

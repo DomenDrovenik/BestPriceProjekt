@@ -1,6 +1,7 @@
 // src/components/PriceComparison.jsx
 import React, { useState, useEffect } from "react";
 import { Card, CardBody, Typography } from "@material-tailwind/react";
+import { Link as RouterLink } from "react-router-dom";
 
 export function PriceComparison({ productName }) {
   const [comparisons, setComparisons] = useState([]);
@@ -47,13 +48,16 @@ export function PriceComparison({ productName }) {
           Primerjava cen v drugih trgovinah
         </Typography>
         <ul className="space-y-4">
-          {comparisons.map(({ store, price, image, name }, i) => (
+          {comparisons.map(({ id,store, price, image, name }, i) => (
+            
             <li
+            onClick={()=>{}}
               key={i}
               className="flex items-center gap-4 p-2 bg-gray-50 rounded shadow-sm"
             >
+              <RouterLink to={`/products/${id}`} className="flex items-center gap-4 w-full">
               <img
-                src={image}
+                src={store === "Hofer" ? "/img/HOFER.png" : image}
                 alt={name}
                 className="h-12 w-12 object-contain rounded"
               />
@@ -64,7 +68,9 @@ export function PriceComparison({ productName }) {
                 </Typography>
               </div>
               <Typography className="font-bold">{price} €</Typography>
+              </RouterLink>
             </li>
+            
           ))}
         </ul>
       </CardBody>

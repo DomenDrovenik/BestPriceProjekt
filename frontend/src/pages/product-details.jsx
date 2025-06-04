@@ -304,10 +304,15 @@ useEffect(() => {
           className="h-64 bg-white flex items-center justify-center overflow-hidden"
         >
           <img
-            src={product.image || "/img/no-image.png"}
-            alt={product.name}
+            src={
+              product?.store === "Hofer"
+                ? "/img/HOFER.png"
+                : product?.image || "/img/no-image.png"
+            }
+            alt={product?.name || "Izdelek"}
             className="h-full object-contain"
           />
+          
         </CardHeader>
         <CardBody className="text-center">
           <Typography variant="h4" className="font-bold mb-1">
