@@ -75,8 +75,9 @@ async function sendPriceAlertEmail(userEmail, product, targetPrice) {
     let price = product.actionPrice ? product.actionPrice : product.price;
 
     await resend.emails.send({
-      from: "BestPrice <onboarding@resend.dev>",
-      to: ["domen.drovenik@student.um.si"], //to: [`${userEmail}`],
+      from: "BestPrice <noreply@bestpriceapp.me>",
+      // to: ["domen.drovenik@student.um.si"], //to: [`${userEmail}`],
+      to: [`${userEmail}`],
       subject: `Cena za ${product.name} je padla!`,
       html: `
         <h1>Cena za izdelek ${product.name} je padla pod ${targetPrice}€!</h1>

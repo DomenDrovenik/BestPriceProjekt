@@ -51,7 +51,7 @@ export function Products() {
   const [searchParams] = useSearchParams();
 
   const { data: productsData, error } = useSWR(
-    'http://localhost:3000/api/all-products',
+    'https://bestpriceprojekt-production.up.railway.app/api/all-products',
     fetcher
   );
 
@@ -136,7 +136,7 @@ export function Products() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, selectedCats, priceRange, minRating, sortBy]);
+  }, [search, selectedCats, priceRange, minRating, sortBy,selectedStores, onlyDiscounted, sortByDiscount]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
