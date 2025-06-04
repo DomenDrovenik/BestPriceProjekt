@@ -99,10 +99,21 @@ useEffect(() => {
           // const resP = await fetch(`http://localhost:3000/api/products/${id}`);
 
           const dataP = await resP.json();
+          if(dataP.validFrom) {
+          const isInAction = isHoferProductInAction(dataP);
+
           setProduct({
                ...dataP,
                id: dataP._id?.toString?.() || id,
+               actionPrice: isInAction ? dataP.actionPrice : null,
+            
            });
+           }else{
+            setProduct({
+               ...dataP,
+               id: dataP._id?.toString?.() || id,
+           });
+           }
   
           const prev = dataP.previousPrices || [];
           const formatted = prev.map(({ date, price }) => ({
@@ -255,6 +266,18 @@ useEffect(() => {
       toast.error("Napaka pri povezavi s strežnikom.");
     }
   };
+
+  function isHoferProductInAction(product) {
+  if (!product.validFrom || !product.validTo || !product.actionPrice) {
+    return false;
+  }
+
+  const now = new Date();
+  const from = new Date(product.validFrom);
+  const to = new Date(product.validTo);
+
+  return now >= from && now <= to;
+}
 
   return (
     <>

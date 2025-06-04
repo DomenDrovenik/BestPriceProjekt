@@ -194,12 +194,12 @@ app.get("/api/all-products", async (req, res) => {
         if (!match) return false;
         const [_, fromStr, toStr] = match;
 
-        const year = now.getFullYear(); // Assume current year
+        const year = now.getFullYear();
         const [fromDay, fromMonth] = fromStr.split(".").map(Number);
         const [toDay, toMonth] = toStr.split(".").map(Number);
 
         const from = new Date(year, fromMonth - 1, fromDay);
-        const to = new Date(year, toMonth - 1, toDay, 23, 59, 59); // inclusive end date
+        const to = new Date(year, toMonth - 1, toDay, 23, 59, 59);
 
         return now >= from && now <= to;
       })
@@ -209,16 +209,18 @@ app.get("/api/all-products", async (req, res) => {
       }));
 
     const hoferRaw = await hoferCollection.find({}).toArray();
-    const hofer = hoferRaw
-      .filter((p) => {
-        const from = new Date(p.validFrom);
-        const to = new Date(p.validTo);
-        return now >= from && now <= to;
-      })
-      .map((p) => ({
+    const hofer = hoferRaw.map((p) => {
+      const now = new Date();
+      const validFrom = new Date(p.validFrom);
+      const validTo = new Date(p.validTo);
+
+      const isInAction = now >= validFrom && now <= validTo;
+      return {
         ...p,
         store: "Hofer",
-      }));
+        actionPrice: isInAction ? p.actionPrice : null,
+      };
+    });
 
     const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
     res.status(200).json(all);
@@ -268,92 +270,6 @@ app.get("/api/products/:id", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
-// app.get("/api/discountedProducts", async (req, res) => {
-//   try {
-//     const collections = [
-//       tusCollection,
-//       merkatorCollection,
-//       jagerCollection,
-//       lidlCollection,
-//       hoferCollection,
-//     ];
-
-//     const allDiscounts = [];
-
-//     for (const collection of collections) {
-//       const data = await collection
-//         .aggregate([
-//           { $match: { actionPrice: { $exists: true, $ne: null } } },
-//           {
-//             $addFields: {
-//               discountPercentage: {
-//                 $multiply: [
-//                   {
-//                     $divide: [
-//                       {
-//                         $subtract: [
-//                           { $toDouble: "$price" },
-//                           { $toDouble: "$actionPrice" },
-//                         ],
-//                       },
-//                       { $toDouble: "$price" },
-//                     ],
-//                   },
-//                   100,
-//                 ],
-//               },
-//               source: collection.collectionName,
-//             },
-//           },
-//         ])
-//         .toArray();
-
-//       allDiscounts.push(...data);
-//     }
-
-//     const topDiscounts = allDiscounts
-//       .sort((a, b) => b.discountPercentage - a.discountPercentage)
-//       .slice(0, 5);
-
-//     const withTrend = topDiscounts.map((item) => {
-//       const previous = Array.isArray(item.previousPrices)
-//         ? item.previousPrices
-//         : [];
-
-//       const price = parseFloat(item.price);
-//       const actionPrice = parseFloat(item.actionPrice);
-
-//       const previousValues = previous.map((p) => parseFloat(p.price));
-
-//       let trendArray = [...previous.map((p) => ({ pv: parseFloat(p.price) }))];
-
-//       const isPriceInPrevious = previousValues.includes(price);
-//       const isActionInPrevious = previousValues.includes(actionPrice);
-
-//       if (!isPriceInPrevious && isActionInPrevious) {
-//         const index = trendArray.findIndex((t) => t.pv === actionPrice);
-//         if (index !== -1) {
-//           trendArray.splice(index, 0, { pv: price });
-//         }
-//       }
-
-//       if (!isActionInPrevious) {
-//         trendArray.push({ pv: actionPrice });
-//       }
-
-//       return {
-//         ...item,
-//         trend: trendArray,
-//       };
-//     });
-
-//     res.status(200).json(withTrend);
-//   } catch (error) {
-//     console.error("Napaka pri pridobivanju znižanih izdelkov:", error);
-//     res.status(500).json({ message: "Napaka na strežniku" });
-//   }
-// });
 
 app.get("/api/discountedProducts", async (req, res) => {
   try {
