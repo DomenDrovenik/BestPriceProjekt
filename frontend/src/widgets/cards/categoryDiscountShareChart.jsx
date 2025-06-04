@@ -49,7 +49,7 @@ const normalizeCategory = (category, subcategory) => {
 };
 
 export function CategoryDiscountShareChart() {
-  const { data: products, error } = useSWR('http://localhost:3000/api/all-products', fetcher);
+  const { data: products, error } = useSWR('https://bestpriceprojekt-production.up.railway.app/api/all-products', fetcher);
   const [isMobile, setIsMobile] = useState(false);
 
   // Preverimo širino zaslona, da vemo, ali smo na mobilni napravi

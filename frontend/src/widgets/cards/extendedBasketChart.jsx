@@ -34,7 +34,7 @@ const EXTENDED_ITEMS = [
 ];
 
 export function ExtendedBasketChart() {
-  const { data: extendedItems, error } = useSWR('http://localhost:3000/api/basket/extended', fetcher);
+  const { data: extendedItems, error } = useSWR('https://bestpriceprojekt-production.up.railway.app/api/basket/extended', fetcher);
   const [openList, setOpenList] = useState(false);
   if (error) return <Typography color="red" className="text-center py-4">Napaka pri nalaganju košarice</Typography>;
   if (!extendedItems) return <Typography className="text-center py-4">Nalagam…</Typography>;

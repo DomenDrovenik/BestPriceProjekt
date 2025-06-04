@@ -24,7 +24,7 @@ import { Link as RouterLink } from "react-router-dom"; // v naslednjem koraku de
 
 async function fetchTopDiscountedProducts() {
   try {
-    const response = await axios.get('http://localhost:3000/api/discountedProducts');
+    const response = await axios.get('https://bestpriceprojekt-production.up.railway.app/api/discountedProducts');
     const products = response.data;
 
     console.log("Top 5 izdelkov z največjim popustom:", products);
