@@ -111,9 +111,10 @@ export function CategoryDistributionDonutChart() {
         </div>
 
         {/* Podpis grafu: vedno pod grafom, ne glede na velikost */}
-        <Typography variant="small" className="mt-4 text-gray-600 text-center px-4">
-          Delež izdelkov v naši zbirki, razvrščenih po glavnih kategorijah. <br />
-          Na mobilnih napravah grafa ni lahko prikazati vseh nalepk (zaradi prostora), zato so nalepke skrite.
+        <Typography variant="small" className="mt-2 text-center text-gray-600 px-2">
+        {isMobile
+            ? "Graf prikazuje, koliko izdelkov je v posamezni kategoriji, če klikneš na kategorijo se ti prikaže število." 
+            : "Graf prikazuje, kolikšen delež vseh izdelkov v bazi pripada posamezni kategoriji (v %), če greš na posamezno kategorijo se prikaže tudi število izdelkov v tej kategoriji." }
         </Typography>
       </CardBody>
     </Card>

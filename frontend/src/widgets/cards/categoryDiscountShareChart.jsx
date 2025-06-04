@@ -159,7 +159,7 @@ export function CategoryDiscountShareChart() {
 
         <Typography variant="small" className="mt-2 text-center text-gray-600 px-2">
           {isMobile
-            ? "Horizontalni graf prikazuje odstotek izdelkov v akciji znotraj vsake kategorije. Kategorije so na levo (Y), odstotek na X (_%)"
+            ? "Horizontalni graf prikazuje odstotek izdelkov v akciji znotraj vsake kategorije. Kategorije so na levo (Y), odstotek na X (v %)"
             : "Navpični graf prikazuje odstotek izdelkov, ki so trenutno v akciji, znotraj vsake kategorije. Stolpci so po kategorijah, na osi Y je odstotek."}
         </Typography>
       </CardBody>
