@@ -130,7 +130,6 @@ async function autoScroll(page) {
   });
 }
 
-// === SHRANJEVANJE V BAZO ===
 (async () => {
   try {
     await client.connect();
@@ -147,8 +146,10 @@ async function autoScroll(page) {
       return value.replace(",", ".").trim();
     };
 
+    const scrapedDocs = [];
+
     for (const item of items) {
-      const filter = { name: item.name };
+      const filter = { name: item.name, image: item.image };
       const existing = await collection.findOne(filter);
 
       const price = parsePrice(item.regularPrice) ?? parsePrice(item.price);
@@ -163,6 +164,8 @@ async function autoScroll(page) {
       const shouldAddToHistory =
         currentPrice !== null && currentPrice !== lastStoredPrice;
 
+      scrapedDocs.push(filter);
+
       if (!existing) {
         const newDoc = {
           name: item.name,
@@ -174,6 +177,7 @@ async function autoScroll(page) {
             ? [{ price: currentPrice, date: new Date() }]
             : [],
           updatedAt: new Date(),
+          active: true,
         };
         await collection.insertOne(newDoc);
         savedCount++;
@@ -185,6 +189,7 @@ async function autoScroll(page) {
             image: item.image,
             category: item.category,
             updatedAt: new Date(),
+            active: true,
           },
         };
 
@@ -199,7 +204,16 @@ async function autoScroll(page) {
       }
     }
 
+    await collection.updateMany(
+      { $nor: scrapedDocs },
+      { $set: { active: false } }
+    );
+
     console.log(`✅ Shranjenih ali posodobljenih izdelkov: ${savedCount}`);
+    console.log(
+      `🟡 Označeni kot neaktivni: ${await collection.countDocuments({ active: false })}`
+    );
+
     await client.close();
     process.exit(0);
   } catch (err) {

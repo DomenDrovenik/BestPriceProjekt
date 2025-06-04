@@ -171,15 +171,19 @@ app.get("/api/all-products", async (req, res) => {
       })
     );
 
-    const merkator = (await merkatorCollection.find({}).toArray()).map((p) => ({
+    const merkator = (
+      await merkatorCollection.find({ active: true }).toArray()
+    ).map((p) => ({
       ...p,
       store: "Mercator",
     }));
 
-    const jager = (await jagerCollection.find({}).toArray()).map((p) => ({
-      ...p,
-      store: "Jager",
-    }));
+    const jager = (await jagerCollection.find({ active: true }).toArray()).map(
+      (p) => ({
+        ...p,
+        store: "Jager",
+      })
+    );
 
     const lidlRaw = await lidlCollection.find({}).toArray();
     const lidl = lidlRaw
@@ -369,7 +373,11 @@ app.get("/api/discountedProducts", async (req, res) => {
         actionPrice: { $exists: true, $ne: null },
       };
 
-      if (collection.collectionName === "tus") {
+      if (
+        ["tus", "jagerproducts", "mercatorproducts"].includes(
+          collection.collectionName
+        )
+      ) {
         matchConditions.active = true;
       }
 

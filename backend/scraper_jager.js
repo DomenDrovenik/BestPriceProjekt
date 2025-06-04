@@ -144,7 +144,6 @@ async function gotoWithRetry(page, url, retries = 3) {
   }
 }
 
-// MAIN EXECUTION
 (async () => {
   try {
     await client.connect();
@@ -155,6 +154,7 @@ async function gotoWithRetry(page, url, retries = 3) {
 
     const items = await scrapeJager();
     let savedCount = 0;
+    const scrapedNames = [];
 
     const normalizePrice = (val) => {
       if (!val || val === "Ni podatka") return null;
@@ -165,6 +165,8 @@ async function gotoWithRetry(page, url, retries = 3) {
       const price = normalizePrice(item.price);
       const actionPrice = normalizePrice(item.actionPrice);
       const currentPrice = actionPrice ?? price;
+
+      scrapedNames.push(item.name);
 
       const existing = await collection.findOne({ name: item.name });
       const lastStoredPrice =
@@ -185,6 +187,7 @@ async function gotoWithRetry(page, url, retries = 3) {
           image: item.image,
           akcija: item.akcija ? "true" : "false",
           category: item.category,
+          active: true,
           previousPrices: shouldAddToHistory
             ? [{ price: currentPrice, date: new Date() }]
             : [],
@@ -200,6 +203,7 @@ async function gotoWithRetry(page, url, retries = 3) {
             akcija: item.akcija ? "true" : "false",
             image: item.image,
             category: item.category,
+            active: true,
             updatedAt: new Date(),
           },
         };
@@ -214,6 +218,11 @@ async function gotoWithRetry(page, url, retries = 3) {
         savedCount++;
       }
     }
+
+    await collection.updateMany(
+      { name: { $nin: scrapedNames } },
+      { $set: { active: false } }
+    );
 
     console.log(`✅ Shranjenih ali posodobljenih izdelkov: ${savedCount}`);
     await client.close();
