@@ -108,7 +108,7 @@ async function extractImagesHtml(browser, slug) {
 
 // 5) Regex patterns
 const weightRe = /^(?:\d+\s?[xX×]\s?)?\d+(?:,\d+)?\s*(?:g|kg|l|ml)$/i;
-const priceRe = /\d+,\d{2}/;
+const priceRe = /^\d+,\d{2}$/;
 const dateRangeRe = /(\d{1,2}\.\s*\d{1,2}\.)\s*[–-]\s*(\d{1,2}\.\s*\d{1,2}\.)/;
 const dateSingleRe = /(\d{1,2}\.\s*\d{1,2}\.)/;
 function isUpperOnly(str) {
@@ -149,32 +149,43 @@ function extractPageDates(lines) {
 function extractItemsFromLines(lines, pageNum, pageDates, pageImgs) {
   const items = [];
   for (let i = 0; i < lines.length; i++) {
+    // poiščemo vrstico, ki izgleda kot “teža” (npr. “370 ml” ali “200 g”)
     if (!weightRe.test(lines[i])) continue;
+
+    // poiščemo ime iz prejšnjih 1–2 vrstic, če so z velike začetnice
     const nameParts = [];
     let j = i - 1;
-    while (j >= 0 && nameParts.length < 2 && isUpperOnly(lines[j])) {
+    while (j >= 0 && nameParts.length < 3 && isUpperOnly(lines[j])) {
       nameParts.unshift(lines[j]);
       j--;
     }
     if (!nameParts.length) continue;
     const name = nameParts.join(" ");
+
+    // poiščemo cene (actionPrice in price). Preskočimo tiste, ki imajo zraven "/"
     const prices = [];
     for (let k = i + 1; k < lines.length && prices.length < 2; k++) {
-      const m = lines[k].match(priceRe);
-      if (m) prices.push(m[0]);
+      const token = lines[k].trim();
+      // ali token sovpada natančno s priceRe in ne vsebuje "/"?
+      if (priceRe.test(token) && !token.includes('/')) {
+        prices.push(token);
+      }
     }
+
     items.push({
       page: pageNum,
       name,
       weight: lines[i],
-      price: prices[1] || null,
-      actionPrice: prices[0] || null,
+      // prices[0] bo actionPrice (če obstaja), prices[1] pa originalna cena
+      price: prices[1] || prices[0] || null,
+      actionPrice: prices.length > 1 ? prices[0] : null,
       validFrom: pageDates.validFrom,
       validTo: pageDates.validTo,
       images: pageImgs,
     });
   }
-  // dedupe
+
+  // de-duplicate (če se ponovi enak zapis)
   return items.filter(
     (v, i, a) =>
       a.findIndex(
