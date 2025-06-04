@@ -3,6 +3,7 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
 
 const MONGO_URI = process.env.DATABASE_URL;
+const DB_NAME = process.env.DB_NAME;
 
 let client;
 let db;
@@ -35,7 +36,7 @@ async function getCollection(name) {
       autoSelectFamily: false,
     });
     await client.connect();
-    db = client.db(); // ali db = client.db("BestPrice") za večjo varnost
+    db = client.db(DB_NAME); // ali db = client.db("BestPrice") za večjo varnost
   }
   return db.collection(name);
 }
