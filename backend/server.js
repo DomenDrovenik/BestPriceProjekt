@@ -128,28 +128,93 @@ app.get("/lidl", async (req, res) => {
   }
 });
 
+// app.get("/api/all-products", async (req, res) => {
+//   try {
+//     const tus = (await tusCollection.find({ active: true }).toArray()).map(
+//       (p) => ({
+//         ...p,
+//         store: "Tuš",
+//       })
+//     );
+//     const merkator = (await merkatorCollection.find({}).toArray()).map((p) => ({
+//       ...p,
+//       store: "Mercator",
+//     }));
+//     const jager = (await jagerCollection.find({}).toArray()).map((p) => ({
+//       ...p,
+//       store: "Jager",
+//     }));
+//     const lidl = (await lidlCollection.find({}).toArray()).map((p) => ({
+//       ...p,
+//       store: "Lidl",
+//     }));
+//     const hofer = (await hoferCollection.find({}).toArray()).map((p) => ({
+//       ...p,
+//       store: "Hofer",
+//     }));
+
+//     const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
+//     res.status(200).json(all);
+//   } catch (error) {
+//     console.error("Napaka pri pridobivanju vseh izdelkov:", error);
+//     res.status(500).json({ message: "Napaka na strežniku" });
+//   }
+// });
 app.get("/api/all-products", async (req, res) => {
   try {
-    const tus = (await tusCollection.find({}).toArray()).map((p) => ({
-      ...p,
-      store: "Tuš",
-    }));
+    const now = new Date();
+
+    const tus = (await tusCollection.find({ active: true }).toArray()).map(
+      (p) => ({
+        ...p,
+        store: "Tuš",
+      })
+    );
+
     const merkator = (await merkatorCollection.find({}).toArray()).map((p) => ({
       ...p,
       store: "Mercator",
     }));
+
     const jager = (await jagerCollection.find({}).toArray()).map((p) => ({
       ...p,
       store: "Jager",
     }));
-    const lidl = (await lidlCollection.find({}).toArray()).map((p) => ({
-      ...p,
-      store: "Lidl",
-    }));
-    const hofer = (await hoferCollection.find({}).toArray()).map((p) => ({
-      ...p,
-      store: "Hofer",
-    }));
+
+    const lidlRaw = await lidlCollection.find({}).toArray();
+    const lidl = lidlRaw
+      .filter((p) => {
+        const match = p.dostopno?.match(
+          /od (\d{2}\.\d{2}\.) do (\d{2}\.\d{2}\.)/
+        );
+        if (!match) return false;
+        const [_, fromStr, toStr] = match;
+
+        const year = now.getFullYear(); // Assume current year
+        const [fromDay, fromMonth] = fromStr.split(".").map(Number);
+        const [toDay, toMonth] = toStr.split(".").map(Number);
+
+        const from = new Date(year, fromMonth - 1, fromDay);
+        const to = new Date(year, toMonth - 1, toDay, 23, 59, 59); // inclusive end date
+
+        return now >= from && now <= to;
+      })
+      .map((p) => ({
+        ...p,
+        store: "Lidl",
+      }));
+
+    const hoferRaw = await hoferCollection.find({}).toArray();
+    const hofer = hoferRaw
+      .filter((p) => {
+        const from = new Date(p.validFrom);
+        const to = new Date(p.validTo);
+        return now >= from && now <= to;
+      })
+      .map((p) => ({
+        ...p,
+        store: "Hofer",
+      }));
 
     const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
     res.status(200).json(all);
@@ -200,8 +265,95 @@ app.get("/api/products/:id", async (req, res) => {
   }
 });
 
+// app.get("/api/discountedProducts", async (req, res) => {
+//   try {
+//     const collections = [
+//       tusCollection,
+//       merkatorCollection,
+//       jagerCollection,
+//       lidlCollection,
+//       hoferCollection,
+//     ];
+
+//     const allDiscounts = [];
+
+//     for (const collection of collections) {
+//       const data = await collection
+//         .aggregate([
+//           { $match: { actionPrice: { $exists: true, $ne: null } } },
+//           {
+//             $addFields: {
+//               discountPercentage: {
+//                 $multiply: [
+//                   {
+//                     $divide: [
+//                       {
+//                         $subtract: [
+//                           { $toDouble: "$price" },
+//                           { $toDouble: "$actionPrice" },
+//                         ],
+//                       },
+//                       { $toDouble: "$price" },
+//                     ],
+//                   },
+//                   100,
+//                 ],
+//               },
+//               source: collection.collectionName,
+//             },
+//           },
+//         ])
+//         .toArray();
+
+//       allDiscounts.push(...data);
+//     }
+
+//     const topDiscounts = allDiscounts
+//       .sort((a, b) => b.discountPercentage - a.discountPercentage)
+//       .slice(0, 5);
+
+//     const withTrend = topDiscounts.map((item) => {
+//       const previous = Array.isArray(item.previousPrices)
+//         ? item.previousPrices
+//         : [];
+
+//       const price = parseFloat(item.price);
+//       const actionPrice = parseFloat(item.actionPrice);
+
+//       const previousValues = previous.map((p) => parseFloat(p.price));
+
+//       let trendArray = [...previous.map((p) => ({ pv: parseFloat(p.price) }))];
+
+//       const isPriceInPrevious = previousValues.includes(price);
+//       const isActionInPrevious = previousValues.includes(actionPrice);
+
+//       if (!isPriceInPrevious && isActionInPrevious) {
+//         const index = trendArray.findIndex((t) => t.pv === actionPrice);
+//         if (index !== -1) {
+//           trendArray.splice(index, 0, { pv: price });
+//         }
+//       }
+
+//       if (!isActionInPrevious) {
+//         trendArray.push({ pv: actionPrice });
+//       }
+
+//       return {
+//         ...item,
+//         trend: trendArray,
+//       };
+//     });
+
+//     res.status(200).json(withTrend);
+//   } catch (error) {
+//     console.error("Napaka pri pridobivanju znižanih izdelkov:", error);
+//     res.status(500).json({ message: "Napaka na strežniku" });
+//   }
+// });
+
 app.get("/api/discountedProducts", async (req, res) => {
   try {
+    const now = new Date();
     const collections = [
       tusCollection,
       merkatorCollection,
@@ -213,9 +365,17 @@ app.get("/api/discountedProducts", async (req, res) => {
     const allDiscounts = [];
 
     for (const collection of collections) {
+      const matchConditions = {
+        actionPrice: { $exists: true, $ne: null },
+      };
+
+      if (collection.collectionName === "tus") {
+        matchConditions.active = true;
+      }
+
       const data = await collection
         .aggregate([
-          { $match: { actionPrice: { $exists: true, $ne: null } } },
+          { $match: matchConditions },
           {
             $addFields: {
               discountPercentage: {
@@ -234,13 +394,44 @@ app.get("/api/discountedProducts", async (req, res) => {
                   100,
                 ],
               },
-              source: collection.collectionName,
+              store:
+                collection.collectionName.charAt(0).toUpperCase() +
+                collection.collectionName.slice(1), // e.g. "hofer" -> "Hofer"
             },
           },
         ])
         .toArray();
 
-      allDiscounts.push(...data);
+      const filtered = data.filter((item) => {
+        if (collection.collectionName === "lidl") {
+          const match = item.dostopno?.match(
+            /od (\d{2})\.(\d{2})\. do (\d{2})\.(\d{2})\./
+          );
+          if (!match) return false;
+
+          const [, fromDay, fromMonth, toDay, toMonth] = match.map(Number);
+          const from = new Date(now.getFullYear(), fromMonth - 1, fromDay);
+          const to = new Date(
+            now.getFullYear(),
+            toMonth - 1,
+            toDay,
+            23,
+            59,
+            59
+          );
+          return now >= from && now <= to;
+        }
+
+        if (collection.collectionName === "hofer") {
+          const from = new Date(item.validFrom);
+          const to = new Date(item.validTo);
+          return now >= from && now <= to;
+        }
+
+        return true;
+      });
+
+      allDiscounts.push(...filtered);
     }
 
     const topDiscounts = allDiscounts
@@ -251,13 +442,11 @@ app.get("/api/discountedProducts", async (req, res) => {
       const previous = Array.isArray(item.previousPrices)
         ? item.previousPrices
         : [];
-
       const price = parseFloat(item.price);
       const actionPrice = parseFloat(item.actionPrice);
-
       const previousValues = previous.map((p) => parseFloat(p.price));
 
-      let trendArray = [...previous.map((p) => ({ pv: parseFloat(p.price) }))];
+      let trendArray = previous.map((p) => ({ pv: parseFloat(p.price) }));
 
       const isPriceInPrevious = previousValues.includes(price);
       const isActionInPrevious = previousValues.includes(actionPrice);

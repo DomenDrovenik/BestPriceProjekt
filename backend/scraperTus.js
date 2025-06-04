@@ -1,4 +1,3 @@
-// const express = require("express");
 const puppeteer = require("puppeteer");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
@@ -29,7 +28,6 @@ async function ScrapeTus() {
       url: "https://www.tuscc.si/katalog/brezalkoholne-pijace",
       category: "Brezalkoholne Pijače",
     },
-    // { url: "https://www.tuscc.si/katalog/nezivila", category: "Neživila" },
     {
       url: "https://www.tuscc.si/katalog/alkoholne-pijace",
       category: "Alkoholne Pijače",
@@ -119,7 +117,6 @@ async function ScrapeTus() {
           console.log(
             `Najdenih izdelkov na strani ${currentPageUrl}: ${items.length}`
           );
-
           pageIndex += 25;
         }
       }
@@ -155,6 +152,10 @@ async function runTusScraper() {
     const scrapedItems = await ScrapeTus();
     const now = new Date();
 
+    const scrapedDocs = scrapedItems.map((item) => {
+      return { name: item.name, image: item.image };
+    });
+
     for (const item of scrapedItems) {
       const existing = await collection.findOne({
         name: item.name,
@@ -172,7 +173,6 @@ async function runTusScraper() {
       const prevHadAction =
         existing?.actionPrice !== null && existing?.actionPrice !== undefined;
 
-      // Če obstaja akcijska cena → spremljaj to
       if (hasAction) {
         if (!lastEntry || lastEntry.price !== item.actionPrice) {
           previousPrices.push({
@@ -186,7 +186,6 @@ async function runTusScraper() {
         }
         updates.actionPrice = item.actionPrice;
       } else {
-        // Akcija je izginila → najverjetneje gre cena nazaj na navadno
         if (prevHadAction) {
           updates.$unset = { actionPrice: "" };
           console.log(`❌ Akcija odstranjena za "${item.name}"`);
@@ -202,7 +201,6 @@ async function runTusScraper() {
             );
           }
         } else {
-          // Brez akcije → spremljaj redno ceno normalno
           if (!lastEntry || lastEntry.price !== item.price) {
             previousPrices.push({
               price: item.price,
@@ -217,12 +215,14 @@ async function runTusScraper() {
       updates.updatedAt = now;
       updates.price = item.price;
       updates.previousPrices = previousPrices;
+      updates.active = true;
 
       if (!existing) {
         await collection.insertOne({
           ...item,
           previousPrices,
           updatedAt: now,
+          active: true,
         });
         console.log(`🆕 Nov izdelek dodan: "${item.name}"`);
         continue;
@@ -239,8 +239,19 @@ async function runTusScraper() {
         delete updateOps.$set.$unset;
 
         await collection.updateOne({ _id: existing._id }, updateOps);
+      } else {
+        await collection.updateOne(
+          { _id: existing._id },
+          { $set: { updatedAt: now, active: true } }
+        );
       }
     }
+
+    // Označi izdelke, ki niso več prisotni, kot neaktivne
+    await collection.updateMany(
+      { $nor: scrapedDocs },
+      { $set: { active: false } }
+    );
 
     console.log("✅ Scraper končan.");
   } catch (err) {
