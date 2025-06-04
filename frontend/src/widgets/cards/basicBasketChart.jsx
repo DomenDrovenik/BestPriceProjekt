@@ -46,7 +46,7 @@ const BASIC_ITEMS = [
 ];
 
 export function BasicBasketChart() {
-  const { data: basicItems, error } = useSWR('http://localhost:3000/api/basket/basic', fetcher);
+  const { data: basicItems, error } = useSWR('https://bestpriceprojekt-production.up.railway.app/api/basket/basic', fetcher);
   const [openList, setOpenList] = useState(false);
 
   if (error) return <Typography color="red" className="text-center py-4">Napaka pri nalaganju košarice</Typography>;
