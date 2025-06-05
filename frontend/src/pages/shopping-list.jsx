@@ -346,10 +346,13 @@ useEffect(() => {
     }
 
     try {
-      const res = await fetch(`http://localhost:3000/api/search?name=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(
+        `https://bestpriceprojekt-production.up.railway.app/api/search?name=${encodeURIComponent(searchQuery)}`
+        // `http://localhost:3000/api/search?name=${encodeURIComponent(searchQuery)}`
+      );
       const data = await res.json();
-       const sortedData = sortByUnitPrice(data); 
-    setSearchResults(sortedData);             
+      const sortedData = sortByUnitPrice(data); 
+      setSearchResults(sortedData);             
     } catch (err) {
       console.error("Napaka pri iskanju izdelkov:", err);
       setSearchResults([]);
@@ -415,11 +418,13 @@ const fetchBestMatches = async (items) => {
   const results = [];
 
   for (const item of items) {
-    try {
+      try {
       const res = await fetch(
-        `http://localhost:3000/api/search?name=${encodeURIComponent(item.name)}`
+        `https://bestpriceprojekt-production.up.railway.app/api/search?name=${encodeURIComponent(item.name)}`
+        // `http://localhost:3000/api/search?name=${encodeURIComponent(item.name)}`
       );
       const data = await res.json();
+
       if (Array.isArray(data) && data.length > 0) {
         const best = sortByUnitPrice(data)[0];
         results.push({
