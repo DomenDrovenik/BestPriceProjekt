@@ -155,26 +155,43 @@ app.get("/api/all-products", async (req, res) => {
 
     const lidlRaw = await lidlCollection.find({}).toArray();
     const lidl = lidlRaw
-      .filter((p) => {
-        const match = p.dostopno?.match(
-          /od (\d{2}\.\d{2}\.) do (\d{2}\.\d{2}\.)/
-        );
-        if (!match) return false;
-        const [_, fromStr, toStr] = match;
+  .filter((p) => {
+    const now = new Date();
 
+    const dostopnoText = p.dostopno?.trim().toLowerCase();
+    if (dostopnoText === "v trgovini") {
+      return true;
+    }
+
+    let match = p.dostopno?.match(/od (\d{2}\.\d{2}\.) do (\d{2}\.\d{2}\.)/);
+    if (!match) {
+      match = p.dostopno?.match(/od (\d{2}\.\d{2}\.)/);
+      if (match) {
+        const [_, fromStr] = match;
         const year = now.getFullYear();
         const [fromDay, fromMonth] = fromStr.split(".").map(Number);
-        const [toDay, toMonth] = toStr.split(".").map(Number);
 
         const from = new Date(year, fromMonth - 1, fromDay);
-        const to = new Date(year, toMonth - 1, toDay, 23, 59, 59);
+        return now >= from;
+      }
 
-        return now >= from && now <= to;
-      })
-      .map((p) => ({
-        ...p,
-        store: "Lidl",
-      }));
+      return false;
+    }
+
+    const [_, fromStr, toStr] = match;
+    const year = now.getFullYear();
+    const [fromDay, fromMonth] = fromStr.split(".").map(Number);
+    const [toDay, toMonth] = toStr.split(".").map(Number);
+
+    const from = new Date(year, fromMonth - 1, fromDay);
+    const to = new Date(year, toMonth - 1, toDay, 23, 59, 59);
+
+    return now >= from && now <= to;
+  })
+  .map((p) => ({
+    ...p,
+    store: "Lidl",
+  }));
 
     const hoferRaw = await hoferCollection.find({}).toArray();
     const hofer = hoferRaw.map((p) => {
