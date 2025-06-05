@@ -247,7 +247,6 @@ async function runTusScraper() {
       }
     }
 
-    // Označi izdelke, ki niso več prisotni, kot neaktivne
     await collection.updateMany(
       { $nor: scrapedDocs },
       { $set: { active: false } }

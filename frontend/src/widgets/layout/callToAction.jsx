@@ -1,4 +1,3 @@
-// src/views/CallToAction.js
 import React, { useState } from "react";
 import {
   Card,
@@ -6,16 +5,48 @@ import {
   Typography,
   Input,
   Button,
+  Checkbox,
 } from "@material-tailwind/react";
+import toast from "react-hot-toast";
 
 export function CallToAction() {
   const [email, setEmail] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubscribe = () => {
-    if (!email) return;
-    // tu lahko kličeš API za prijavo ali shraniš v localStorage
-    alert(`Hvala za prijavo! Poslali vam bomo novice na ${email}`);
-    setEmail("");
+  const handleSubscribe = async () => {
+    if (!email) {
+      toast.error("Prosimo, vnesite svoj email.");
+      return;
+    }
+    if (!agreed) {
+      toast.error("Prosimo, potrdite, da se strinjate s politiko zasebnosti.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("https://bestpriceprojekt-production.up.railway.app/api/subscribe-newsletter", { //https://bestpriceprojekt-production.up.railway.app/api/subscribe-newsletter
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Prišlo je do napake pri prijavi.");
+      } else {
+        toast.success(data.message || `Hvala za prijavo! Poslali vam bomo novice na ${email}`);
+        setEmail("");
+        setAgreed(false);
+      }
+    } catch (error) {
+      toast.error("Napaka pri povezavi s strežnikom. Poskusi znova.");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,16 +70,29 @@ export function CallToAction() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Vnesi svoj email..."
               className="flex-1"
+              disabled={loading}
             />
             <Button
               variant="gradient"
               size="md"
               onClick={handleSubscribe}
               className="whitespace-nowrap"
+              disabled={loading}
             >
-              Preizkusi zdaj
+              {loading ? "Počakajte..." : "Preizkusi zdaj"}
             </Button>
           </CardBody>
+          <div className="flex items-center mt-4 px-6">
+            <Checkbox
+              id="privacyPolicy"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              disabled={loading}
+            />
+            <label htmlFor="privacyPolicy" className="ml-2 text-sm text-gray-600 cursor-pointer select-none">
+              Strinjam se s <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">politiko zasebnosti</a>.
+            </label>
+          </div>
         </Card>
       </div>
     </section>

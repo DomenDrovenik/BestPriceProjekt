@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
 import { Typography } from '@material-tailwind/react';
-import { ChartBarIcon } from '@heroicons/react/24/solid';
 
 function ProfileStatsComponent({ totalSavings, comparisons, alerts }) {
   return (

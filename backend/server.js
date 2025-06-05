@@ -3,10 +3,13 @@ const cors = require("cors");
 const FuseModule = require("fuse.js");
 const Fuse = FuseModule.default || FuseModule;
 require("dotenv").config();
+const { Resend } = require("resend");
+const crypto = require("crypto");
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 app.disable("x-powered-by");
 // app.use(cors());
@@ -49,6 +52,7 @@ let merkatorCollection;
 let jagerCollection;
 let lidlCollection;
 let hoferCollection;
+let newsletterCollection;
 
 let stores = [];
 async function connectToMongoDB() {
@@ -60,6 +64,7 @@ async function connectToMongoDB() {
     jagerCollection = db.collection("jagerproducts");
     lidlCollection = db.collection("lidl");
     hoferCollection = db.collection("hofer");
+    newsletterCollection = db.collection("newsletterCollection");
 
     stores = [
       { col: tusCollection, label: "Tuš" },
@@ -802,6 +807,138 @@ app.get("/api/basket/extended", async (req, res) => {
     res
       .status(500)
       .json({ message: "Napaka pri pridobivanju razširjene košarice" });
+  }
+});
+
+app.post("/api/subscribe-newsletter", async (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.includes("@")) {
+    return res.status(400).json({ error: "Neveljaven email" });
+  }
+
+  try {
+    const existing = await newsletterCollection.findOne({
+      email: email.toLowerCase(),
+    });
+    if (existing) {
+      return res.status(409).json({ error: "Email je že prijavljen" });
+    }
+
+    const token = crypto.randomBytes(16).toString("hex");
+
+    await newsletterCollection.insertOne({
+      email: email.toLowerCase(),
+      subscribedAt: new Date(),
+      confirmed: false,
+      confirmationToken: token,
+    });
+
+    await resend.emails.send({
+      from: "BestPrice <noreply@bestpriceapp.me>",
+      to: email,
+      subject: "Hvala za prijavo na BestPrice obvestila!",
+      html: `
+        <h1>Hvala za prijavo na naša obvestila!</h1>
+        <p>Tedensko vam bomo poslali obvestila o najboljših akcijah.</p>
+        <p>Če želiš, potrdi svojo prijavo tukaj: 
+          <a href="https://bestprice-4c8cd.firebaseapp.com/newsletter/action?email=${encodeURIComponent(email)}&action=confirm&token=${token}">
+            Potrdi prijavo
+          </a>
+        </p>
+      `,
+    });
+
+    return res
+      .status(200)
+      .json({ message: "Uspešno prijavljen. Preveri svoj email." });
+  } catch (err) {
+    console.error("Napaka pri prijavi na newsletter:", err);
+    return res.status(500).json({ error: "Notranja napaka strežnika" });
+  }
+});
+
+app.get("/newsletter/action", async (req, res) => {
+  const { email, action, token } = req.query;
+
+  if (!email || !action || !token) {
+    return res.status(400).send("Manjkajo podatki.");
+  }
+
+  if (!["confirm", "unsubscribe"].includes(action)) {
+    return res.status(400).send("Neveljavna akcija.");
+  }
+
+  try {
+    const existing = await newsletterCollection.findOne({
+      email: email.toLowerCase(),
+    });
+
+    if (!existing) {
+      return res.send(`
+        <h1>Email ne obstaja v sistemu.</h1>
+        <p>Prosimo, najprej se prijavite na newsletter.</p>
+      `);
+    }
+
+    if (existing.confirmationToken !== token) {
+      return res.send(`
+        <h1>Nepravilen ali potekel ključ.</h1>
+        <p>Ne morete izvesti te akcije.</p>
+      `);
+    }
+
+    if (action === "confirm") {
+      if (existing.confirmed) {
+        return res.send(`
+          <h1>Email je že bil potrjen! ✅</h1>
+          <p>Vaša prijava je že aktivna.</p>
+        `);
+      }
+
+      const result = await newsletterCollection.updateOne(
+        { email: email.toLowerCase() },
+        {
+          $set: { confirmed: true, confirmedAt: new Date() },
+          // $unset: { confirmationToken: "" },
+        }
+      );
+
+      if (result.modifiedCount === 0) {
+        return res.send(`
+          <h1>Napaka pri potrjevanju.</h1>
+          <p>Prosimo, poskusite ponovno ali se obrnite na podporo.</p>
+        `);
+      }
+
+      return res.send(`
+        <h1>Uspešno potrjeno! 🎉</h1>
+        <p>Hvala, da si potrdil svojo prijavo na newsletter.</p>
+      `);
+    }
+
+    if (action === "unsubscribe") {
+      const result = await newsletterCollection.deleteOne({
+        email: email.toLowerCase(),
+        confirmationToken: token,
+      });
+
+      if (result.deletedCount === 0) {
+        return res.send(`
+          <h1>Email ni bil najden ali je že odjavljen.</h1>
+        `);
+      }
+
+      return res.send(`
+        <h1>Uspešno odjavljen! 📨</h1>
+        <p>Žal nam je, da se odjavljaš. Vedno se lahko ponovno prijaviš.</p>
+      `);
+    }
+  } catch (error) {
+    console.error("Napaka pri obdelavi newsletter akcije:", error);
+    return res.status(500).send(`
+      <h1>Napaka strežnika</h1>
+      <p>Prišlo je do napake. Prosimo, poskusite ponovno.</p>
+    `);
   }
 });
 

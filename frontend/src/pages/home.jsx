@@ -1,14 +1,7 @@
 import React from "react";
 import {
-  Card,
-  CardBody,
-  CardHeader,
   Typography,
-  Button,
-  IconButton,
-  Input,
-  Textarea,
-  Checkbox,
+  
 } from "@material-tailwind/react";
 import {  Footer, HowItWorks, TopDeals, CallToAction } from "@/widgets/layout";
 import { FeatureCard,  Categories } from "@/widgets/cards";

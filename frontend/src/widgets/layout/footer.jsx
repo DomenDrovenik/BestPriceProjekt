@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import { Typography, IconButton } from "@material-tailwind/react";
 import routes from "@/routes";
-import { Link, useNavigate } from "react-router-dom";
+import { Link} from "react-router-dom";
 const year = new Date().getFullYear();
 
 export function Footer({ title, description, socials, menus, copyright }) {

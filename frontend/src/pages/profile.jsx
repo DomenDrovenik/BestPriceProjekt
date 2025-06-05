@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Button } from '@material-tailwind/react';
-import { MapPinIcon, BriefcaseIcon, BuildingLibraryIcon } from '@heroicons/react/24/solid';
 import { Footer, ProfileHeader, ProfileStats, ProfilePreferences, PriceAlerts, ShoppingLists } from '@/widgets/layout';
 import { auth, firestore } from '../firebase.js';
 import { doc, getDoc, collection, getDocs, deleteDoc, updateDoc} from 'firebase/firestore';
@@ -15,36 +13,13 @@ export function Profile() {
   //const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    /*const unsubscribe = onAuthStateChanged(auth, async user => {
-      if (!user) return setLoading(false);
-      const userRef = doc(firestore, 'users', user.uid);
-      const snap = await getDoc(userRef);
-      if (snap.exists()) {
-        const data = snap.data();
-        setProfile({
-          name: data.name || '',
-          surname: data.surname || '',
-          email: data.email || user.email,
-          photoURL: data.photoURL || user.photoURL || ''
-        });
-        setFavorites({ stores: data.favoriteStores || [], categories: data.favoriteCategories || [] });
-      } else {
-        setProfile({ name: user.displayName || '', surname: '', email: user.email, photoURL: user.photoURL || '' });
-      }*/
+    
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
           if (!user) {
             //setLoading(false);
             return;
           }
-      /*const statsSnap = await getDoc(doc(firestore, 'users', user.uid, 'meta', 'stats'));
-      if (statsSnap.exists()) setStats(statsSnap.data());
-      const listsSnap = await getDocs(collection(firestore, 'users', user.uid, 'lists'));
-      setLists(listsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      const alertsSnap = await getDocs(collection(firestore, 'users', user.uid, 'priceAlerts'));
-      setAlerts(alertsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);*/
-
-      //setLoading(true);
+      
       const userRef   = doc(firestore, 'users', user.uid);
       const statsRef  = doc(firestore, 'users', user.uid, 'meta', 'stats');
       const listsCol  = collection(firestore, 'users', user.uid, 'lists');
@@ -94,9 +69,7 @@ export function Profile() {
     return unsubscribe;
   }, []);
 
-  /*if (loading) {
-    return <div className="flex h-screen items-center justify-center"><Typography>Loading profile…</Typography></div>;
-  }*/
+  
 
   
 

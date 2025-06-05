@@ -40,8 +40,7 @@ async function fetchTopDiscountedProducts() {
 export function TopDeals() {
 
   const [discountedProducts, setDiscountedProducts] = useState([]);
-  // predpostavimo, da dealsData izgleda takole:
-  // [{ id, name, image, oldPrice, newPrice, trend: [{pv: ...}, ...] }, ...]
+  
   useEffect(()=>{
 
     async function loadData() {
@@ -53,10 +52,7 @@ export function TopDeals() {
 },[])
 
 
-  // const top5 = dealsData
-  //   .sort((a, b) => (b.oldPrice - b.newPrice) / b.oldPrice - (a.oldPrice - a.newPrice) / a.oldPrice)
-  //   .slice(0, 5);
-
+  
   return (
     <section className="py-16 bg-white">
       <div className="container mx-auto px-4 text-center">

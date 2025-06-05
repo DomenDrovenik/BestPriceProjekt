@@ -8,23 +8,6 @@ const DB_NAME = process.env.DB_NAME;
 let client;
 let db;
 
-/**
- * Vrne pripravljeno instanco `db.collection(name)`.
- * Če še nismo povezani, najprej naredi connect().
- */
-// async function getCollection(name) {
-//   if (!client) {
-//     client = new MongoClient(MONGO_URI, {
-//       useNewUrlParser: true,
-//       useUnifiedTopology: true
-//     });
-//     await client.connect();
-//     // DB ime iz URI ali privzeto iz .db('BestPrice')
-//     db = client.db();
-//   }
-//   return db.collection(name);
-// }
-
 async function getCollection(name) {
   if (!client) {
     client = new MongoClient(MONGO_URI, {

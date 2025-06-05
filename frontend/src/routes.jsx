@@ -1,5 +1,6 @@
 import { Home, Products, ProductDetails, Profile, SignIn, SignUp, ShoppingList, Dashboard } from "@/pages";
 import PrivacyPolicy from "./pages/privacy-policy";
+import Newsletter from "./pages/newsletter";
 
 export const routes = [
   {
@@ -59,6 +60,12 @@ export const routes = [
     element: <PrivacyPolicy />,
     showInNav: false,
     showInFooter: true, 
+  },
+  {
+    path: "/newsletter/action",
+    element: <Newsletter />,
+    showInNav: false,
+    showInFooter: false, 
   },
 ];
 

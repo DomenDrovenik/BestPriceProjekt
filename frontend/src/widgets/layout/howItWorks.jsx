@@ -3,8 +3,8 @@ import React from "react";
 import {
   Card,
   CardBody,
-  Typography,
-  IconButton,
+  Typography
+
 } from "@material-tailwind/react";
 import {
   MagnifyingGlassIcon,

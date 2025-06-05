@@ -29,7 +29,7 @@ import {
   } from "@material-tailwind/react";
 import { PageTitle, PriceComparison } from "@/widgets/layout";
 import { PriceAlertButton } from "@/widgets/cards";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth } from "../firebase";
 import { firestore } from "../firebase";

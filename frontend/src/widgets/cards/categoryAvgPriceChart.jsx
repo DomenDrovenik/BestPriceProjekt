@@ -9,7 +9,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
 } from 'recharts';
 import { Card, CardHeader, CardBody, Typography } from '@material-tailwind/react';
 import { ChartBar } from 'lucide-react';
