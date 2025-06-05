@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet';
 import { Typography, Button } from '@material-tailwind/react';
 import { MapPinIcon, BriefcaseIcon, BuildingLibraryIcon } from '@heroicons/react/24/solid';
 import { Footer, ProfileHeader, ProfileStats, ProfilePreferences, PriceAlerts, ShoppingLists } from '@/widgets/layout';
@@ -142,15 +143,25 @@ export function Profile() {
 
   const fullName = `${profile.name} ${profile.surname}`.trim() || 'No Name';
 
+  const pageTitle = `Profil uporabnika – Primerjava cen`;
+  const pageDescription = `Preglej nastavitve, sezname in obvestila o cenah za uporabnika.`;
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+
   return (
     <>
+    <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="noindex, nofollow" />
+        <link rel="canonical" href={currentUrl} />
+      </Helmet>
+
       <section className="relative block h-[50vh]"><div className="absolute top-0 h-full w-full bg-[url('/img/background.jpg')] bg-cover bg-center scale-105"/><div className="absolute top-0 h-full w-full bg-black/60"/></section>
       <section className="relative bg-white py-16">
         <div className="container mx-auto px-4">
           <ProfileHeader fullName={fullName} email={profile.email} photoURL={profile.photoURL} />
-          <ProfileStats totalSavings={stats.totalSavings} comparisons={stats.comparisons} alerts={stats.alertsTriggered} />
           <div className="mt-6 space-y-4">
-            <ProfilePreferences stores={favorites.stores} categories={favorites.categories} />
             <PriceAlerts
         alerts={alerts}
         onRemove={handleRemove}

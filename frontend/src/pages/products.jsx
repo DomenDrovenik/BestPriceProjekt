@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Helmet } from "react-helmet";
 import {
   Card,
   CardBody,
@@ -270,8 +271,60 @@ export function Products() {
     );
   };
 
+  const pageTitle = "Seznam izdelkov – Primerjava cen živil v Sloveniji";
+  const pageDescription =
+    "Razišči in primerjaj cene živil iz različnih trgovin v Sloveniji. Filter po kategorijah, cenah, ocenah in več.";
+  const currentUrl =
+    typeof window !== "undefined" ? window.location.href : "";
+  // Pripravimo JSON-LD kot ItemList s prvimi 10 izdelki (lahko prilagodiš število ali logiko)
+  const jsonLdItemList = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Seznam izdelkov za primerjavo cen",
+    "description": pageDescription,
+    "url": currentUrl,
+    "numberOfItems": filtered.length,
+    "itemListElement": paginated.slice(0, 10).map((p, index) => ({
+      "@type": "ListItem",
+      "position": index + 1 + (currentPage - 1) * itemsPerPage,
+      "url": `${window.location.origin}/products/${p._id}`,
+      "name": p.name,
+    })),
+  };
+
   return (
     <>
+    <Helmet>
+        {/* Dinamičen naslov in opis */}
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta
+          name="keywords"
+          content="primerjava cen, živila, trgovine, seznam izdelkov, cene"
+        />
+        <link rel="canonical" href={currentUrl} />
+
+        {/* Open Graph */}
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={currentUrl} />
+        {/* Če želiš, nastavi globalno sliko za deljenje */}
+        <meta
+          property="og:image"
+          content={`${window.location.origin}/img/og-products.jpg`}
+        />
+        <meta
+          property="og:image:alt"
+          content="Seznam izdelkov za primerjavo cen živil v Sloveniji"
+        />
+
+        {/* JSON-LD strukturirani podatki: ItemList */}
+        <script type="application/ld+json">
+          {JSON.stringify(jsonLdItemList)}
+        </script>
+      </Helmet>
+
       <div className="relative flex h-[50vh] content-center items-center justify-center pt-16 pb-16">
         <div className="absolute top-0 h-full w-full bg-[url('/img/hrana.jpg')] bg-cover bg-center" />
         <div className="absolute top-0 h-full w-full bg-black/60 bg-cover bg-center" />

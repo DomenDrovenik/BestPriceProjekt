@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Helmet } from "react-helmet";
 import {
   Card, CardBody, Typography, Input, Button, Checkbox, IconButton
 } from "@material-tailwind/react";
@@ -530,8 +531,20 @@ function parseQuantityMultiplier(amount) {
 }
 
 
+const pageTitle = "Nakupovalni seznami – Tvoji seznami";
+  const pageDescription =
+    "Upravljaj svoje nakupovalne sezname, izvoz v PDF/TXT in spremljaj popuste.";
+  const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+
   return (
     <>
+    <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="robots" content="noindex, nofollow" />
+        <link rel="canonical" href={currentUrl} />
+      </Helmet>
+
       {/* Naslovni blok */}
 <div className="relative flex h-[50vh] content-center items-center justify-center pt-16 pb-16">
   <div className="absolute top-0 h-full w-full bg-[url('/img/vozicek.jpg')] bg-cover bg-center" />
