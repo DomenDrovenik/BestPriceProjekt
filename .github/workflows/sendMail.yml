@@ -1,0 +1,29 @@
+name: Weekly Mail
+
+on:
+  schedule:
+  - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+jobs:
+  send_mail:
+    runs-on: ubuntu-latest
+    env:
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.15.0"
+
+      - name: Install dependencies
+        run: cd backend && npm install
+
+      - name: Send mail
+        run: cd backend && node newsletter.js
