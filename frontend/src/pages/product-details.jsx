@@ -1,6 +1,7 @@
 // src/pages/ProductDetails.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, Link as RouterLink } from "react-router-dom";
+import { Helmet } from "react-helmet";
 import {
   Typography,
   Button,
@@ -279,8 +280,80 @@ useEffect(() => {
   return now >= from && now <= to;
 }
 
+const pageTitle = `${product.name} - Primerjava cen`;
+const pageDescription = `Oglej si cene in zgodovino izdelka ${product.name} (kategorija: ${product.category}).`;
+const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+const imageUrl = product.image
+  ? product.image
+  : `${window.location.origin}/img/no-image.png`;
+
+// JSON-LD za izdelek
+const jsonLdProduct = {
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": product.name,
+  "image": [imageUrl],
+  "description": product.description || `Izdelek ${product.name} v kategoriji ${product.category}.`,
+  "brand": {
+    "@type": "Thing",
+    "name": product.store || "Neznan proizvajalec",
+  },
+  "category": product.category,
+  "offers": {
+    "@type": "Offer",
+    "url": currentUrl,
+    // Če je v akciji, uporabi akcijsko ceno, drugače redno ceno
+    "price": product.actionPrice != null
+      ? parseFloat(product.actionPrice).toFixed(2)
+      : (parseFloat(product.price).toFixed(2) || "0.00"),
+    "priceCurrency": "EUR",
+    "availability": "https://schema.org/InStock",
+    "priceValidUntil": product.validTo ? product.validTo.split("T")[0] : undefined,
+  },
+  // Povprečna ocena, če so komentarji
+  ...(comments.length > 0 && {
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": (
+        comments.reduce((sum, c) => sum + (c.rating || 0), 0) /
+        comments.length
+      ).toFixed(1),
+      "reviewCount": comments.length,
+    },
+  }),
+};
+
   return (
     <>
+     <Helmet>
+        {/* Dinamičen <title> */}
+        <title>{pageTitle}</title>
+        {/* Meta opis */}
+        <meta name="description" content={pageDescription} />
+        <meta name="keywords" content={`${product.name}, ${product.category}, primerjava cen`} />
+        <link rel="canonical" href={currentUrl} />
+
+        {/* Open Graph */}
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:type" content="product" />
+        <meta property="og:url" content={currentUrl} />
+        <meta property="og:image" content={imageUrl} />
+        <meta property="og:image:alt" content={product.name} />
+        {/* Za ceno lahko dodaš tudi meta-tag: */}
+        <meta property="product:price:amount" content={
+          product.actionPrice != null
+            ? parseFloat(product.actionPrice).toFixed(2)
+            : parseFloat(product.price).toFixed(2)
+        } />
+        <meta property="product:price:currency" content="EUR" />
+
+        {/* JSON-LD strukturirani podatki */}
+        <script type="application/ld+json">
+          {JSON.stringify(jsonLdProduct)}
+        </script>
+      </Helmet>
+
     <div className="relative flex h-32 items-center justify-center pt-8 pb-8">
         <div className="absolute top-0 h-full w-full bg-[url('/img/hrana.jpg')] bg-cover bg-center" />
         <div className="absolute top-0 h-full w-full bg-black/60 bg-cover bg-center" />

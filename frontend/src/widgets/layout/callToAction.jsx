@@ -53,7 +53,7 @@ export function CallToAction() {
     <section className="py-16 bg-blue-gray-50">
       <div className="container mx-auto px-4 text-center">
         <Typography variant="h4" className="mb-4 font-semibold">
-          Začni brezplačno danes!
+          Prijavi se na obvestila o najboljših akcijah!
         </Typography>
         <Typography className="mb-8 text-gray-700">
           Preizkusi našo aplikacijo brez kakršnih koli obveznosti.  

@@ -1,5 +1,6 @@
 // src/pages/Dashboard.jsx
 import React from 'react';
+import { Helmet } from 'react-helmet';
 import useSWR from 'swr';
 import { Card, Typography } from '@material-tailwind/react';
 import AveragePriceBarChart from '@/widgets/cards/averagePriceBarChart';
@@ -32,12 +33,30 @@ export function Dashboard() {
     return <Typography color="red" className="text-center py-4">Napaka pri nalaganju podatkov.</Typography>;
   }
 
+  const pageTitle = "Analiza cen živil – Dashboard";
+  const pageDescription = "Preglejte grafične prikaze povprečnih cen, trendov cen živil in primerjave košaric v Sloveniji.";
+  const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+
   // Trend endpoint returns { data: [...], stores: [...] }
   const trendData = trendResp.data;
   const trendStores = trendResp.stores || [];
 
   return (
     <>
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <link rel="canonical" href={currentUrl} />
+
+        {/* Open Graph */}
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={currentUrl} />
+        <meta property="og:image" content={`${window.location.origin}/img/og-dashboard.jpg`} />
+        <meta property="og:image:alt" content="Grafi analize cen živil" />
+      </Helmet>
+
       {/* Hero sekcija */}
       <div className="relative flex h-[40vh] items-center justify-center bg-gray-100">
         <div className="absolute top-0 h-full w-full bg-[url('/img/line-graph.png')] bg-cover bg-center" />
