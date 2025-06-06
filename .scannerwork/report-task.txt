@@ -2,5 +2,5 @@ projectKey=BestPriceProject
 serverUrl=http://localhost:9000
 serverVersion=24.12.0.100206
 dashboardUrl=http://localhost:9000/dashboard?id=BestPriceProject
-ceTaskId=1e03c525-7c7d-4cd8-aa96-3bf4599ed592
-ceTaskUrl=http://localhost:9000/api/ce/task?id=1e03c525-7c7d-4cd8-aa96-3bf4599ed592
+ceTaskId=c0da9e2f-bc4f-43b1-9b8d-3f237a54abc0
+ceTaskUrl=http://localhost:9000/api/ce/task?id=c0da9e2f-bc4f-43b1-9b8d-3f237a54abc0
