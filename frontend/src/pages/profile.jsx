@@ -4,6 +4,14 @@ import { Footer, ProfileHeader, ProfileStats, ProfilePreferences, PriceAlerts, S
 import { auth, firestore } from '../firebase.js';
 import { doc, getDoc, collection, getDocs, deleteDoc, updateDoc} from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import {
+  Dialog,
+  DialogHeader,
+  DialogBody,
+  DialogFooter,
+  Input,
+  Button
+} from "@material-tailwind/react";
 
 export function Profile() {
   const [profile, setProfile] = useState({ name: '', surname: '', email: '', photoURL: '' });
@@ -12,6 +20,9 @@ export function Profile() {
   const [lists, setLists] = useState([]);
   const [alerts, setAlerts] = useState([]);
   //const [loading, setLoading] = useState(true);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editData, setEditData] = useState({ name: "", surname: "" });
 
   useEffect(() => {
     
@@ -133,7 +144,15 @@ export function Profile() {
       <section className="relative block h-[50vh]"><div className="absolute top-0 h-full w-full bg-[url('/img/background.jpg')] bg-cover bg-center scale-105"/><div className="absolute top-0 h-full w-full bg-black/60"/></section>
       <section className="relative bg-white py-16">
         <div className="container mx-auto px-4">
-          <ProfileHeader fullName={fullName} email={profile.email} photoURL={profile.photoURL} />
+        <ProfileHeader
+          fullName={fullName}
+          email={profile.email}
+          photoURL={profile.photoURL}
+          onConnect={() => {
+            setEditData({ name: profile.name, surname: profile.surname, photoURL: profile.photoURL });
+            setEditOpen(true);
+          }}
+        />
           <div className="mt-6 space-y-4">
             <PriceAlerts
         alerts={alerts}
@@ -148,6 +167,46 @@ export function Profile() {
         </div>
       </section>
       <Footer />
+      <Dialog open={editOpen} handler={() => setEditOpen(false)} size="sm">
+      <DialogHeader>Uredi profil</DialogHeader>
+       <DialogBody className="space-y-4">
+        <Input
+          label="Ime"
+          value={editData.name}
+          onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+        />
+        <Input
+          label="Priimek"
+          value={editData.surname}
+          onChange={(e) => setEditData({ ...editData, surname: e.target.value })}
+        />
+      </DialogBody>
+        <DialogFooter>
+          <Button variant="text" onClick={() => setEditOpen(false)}>
+            Prekliči
+          </Button>
+          <Button
+        color="blue"
+        onClick={async () => {
+          const user = auth.currentUser;
+          if (!user) return;
+          await updateDoc(doc(firestore, "users", user.uid), {
+            name: editData.name,
+            surname: editData.surname,
+          });
+          setProfile(prev => ({
+            ...prev,
+            name: editData.name,
+            surname: editData.surname,
+          }));
+          setEditOpen(false);
+        }}
+      >
+        Shrani
+      </Button>
+  </DialogFooter>
+</Dialog>
+
     </>
   );
 }

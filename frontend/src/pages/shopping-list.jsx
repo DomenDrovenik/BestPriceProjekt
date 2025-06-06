@@ -613,29 +613,32 @@ const pageTitle = "Nakupovalni seznami – Tvoji seznami";
         ))}
       </div>
 
-      <div className="max-w-3xl mx-auto mt-8 px-4">
-        {!user && (
-          <Typography color="red" className="mb-2 text-sm font-semibold text-center uppercase">
-            ZA USTVARJANJE NAKUPOVALNIH SEZNAMOV MORAŠ BITI PRIJAVLJEN
-          </Typography>
-        )}
-        <div className="flex gap-2">
+     <div className="max-w-3xl mx-auto mt-8 px-4">
+      {!user && (
+        <Typography color="red" className="mb-2 text-sm font-semibold text-center uppercase">
+          ZA USTVARJANJE NAKUPOVALNIH SEZNAMOV MORAŠ BITI PRIJAVLJEN
+        </Typography>
+      )}
+      <div className="flex gap-2 items-stretch">
+        <div className="flex-grow">
           <Input
+            size="sm"
             value={newListName}
             onChange={(e) => setNewListName(e.target.value)}
             placeholder="Ime novega seznama..."
             disabled={!user}
           />
-          <Button
-            onClick={createNewList}
-            disabled={!user || !newListName.trim()}
-            className="px-6 py-2 text-white font-bold rounded-lg whitespace-nowrap"
-          >
-            Ustvari seznam
-          </Button>
         </div>
+        <Button
+          size="sm"
+          onClick={createNewList}
+          disabled={!user || !newListName.trim()}
+          className="text-white font-bold rounded-lg whitespace-nowrap"
+        >
+          Ustvari seznam
+        </Button>
       </div>
-
+    </div>
 
       {/* Izpis podrobnosti izbranega seznama */}
       {user && currentList && (
@@ -647,13 +650,13 @@ const pageTitle = "Nakupovalni seznami – Tvoji seznami";
               <Typography variant="h5">{currentList.name}</Typography>
             
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" color="blue" onClick={copyListToClipboard}>
+                <Button size="sm" color="blue-gray" onClick={copyListToClipboard}>
                   Kopiraj
                 </Button>
-                <Button size="sm" color="green" onClick={downloadAsTxt}>
+                <Button size="sm" color="blue-gray" onClick={downloadAsTxt}>
                   Prenesi TXT
                 </Button>
-                <Button size="sm" color="red" onClick={openPdfPreview}>
+                <Button size="sm" color="blue-gray" onClick={openPdfPreview}>
                   Predogled & izvoz PDF
                 </Button>
 
@@ -1297,7 +1300,7 @@ return items.reduce((sum, item) =>
           Prekliči
         </Button>
         <Button
-          color="blue"
+          color="blue-gray"
           onClick={async () => {
             setIsPensioner(selectedMercatorOption === "pension");
 
@@ -1381,7 +1384,7 @@ return items.reduce((sum, item) =>
           Prekliči
         </Button>
         <Button
-          color="green"
+          color="blue-gray"
           onClick={async () => {
             const updatedItems = currentList.items.map((item) => ({
               ...item,

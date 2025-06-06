@@ -59,41 +59,51 @@ export function CallToAction() {
           Preizkusi našo aplikacijo brez kakršnih koli obveznosti.  
           Prijavi se in prejmi obvestila o najboljših akcijah neposredno v svoj e-poštni predal.
         </Typography>
-        <Card className="mx-auto max-w-lg">
-          <CardBody className="flex flex-col md:flex-row items-center gap-4 p-6">
+      <Card className="mx-auto w-full max-w-2xl shadow-lg rounded-xl">
+        <CardBody className="flex flex-col sm:flex-row items-stretch gap-4 p-6">
+            <div className="w-full sm:w-[450px]">
             <Input
               type="email"
               variant="outlined"
-              size="md"
-              fullWidth={false}
+              size="sm"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Vnesi svoj email..."
-              className="flex-1"
               disabled={loading}
             />
-            <Button
-              variant="gradient"
-              size="md"
-              onClick={handleSubscribe}
-              className="whitespace-nowrap"
-              disabled={loading}
-            >
-              {loading ? "Počakajte..." : "Preizkusi zdaj"}
-            </Button>
-          </CardBody>
-          <div className="flex items-center mt-4 px-6">
-            <Checkbox
-              id="privacyPolicy"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              disabled={loading}
-            />
-            <label htmlFor="privacyPolicy" className="ml-2 text-sm text-gray-600 cursor-pointer select-none">
-              Strinjam se s <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">politiko zasebnosti</a>.
-            </label>
           </div>
-        </Card>
+
+          <Button
+            variant="gradient"
+            size="sm"
+            onClick={handleSubscribe}
+            disabled={loading}
+            className="whitespace-nowrap min-w-[130px]"
+          >
+            {loading ? "Počakajte..." : "Preizkusi zdaj"}
+          </Button>
+        </CardBody>
+
+        <div className="flex items-center mt-2 px-6 pb-4">
+          <Checkbox
+            id="privacyPolicy"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            disabled={loading}
+          />
+          <label htmlFor="privacyPolicy" className="ml-2 text-sm text-gray-600 cursor-pointer select-none">
+            Strinjam se s{" "}
+            <a
+              href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              politiko zasebnosti
+            </a>.
+          </label>
+        </div>
+      </Card>
       </div>
     </section>
   );
