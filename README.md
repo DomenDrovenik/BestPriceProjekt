@@ -123,13 +123,13 @@ Spletni brskalnik
 ```
 ## Deployment (Backend)
 
-1. **Kloniranje izvorne kode**  
+1. Kloniranje izvorne kode 
 ```bash
    git clone https://github.com/DomenDrovenik/BestPriceProjekt.git
    cd BestPriceProjekt/backend
 ```
    
-2.	**Namestitev odvisnosti
+2.	 Namestitev odvisnosti
    ```bash
    npm install
   ```
@@ -155,7 +155,9 @@ Spletni brskalnik
 
 ## Avtorji
   •	Anja Lužar
+  
   •	Eva Strašek
+  
   •	Domen Drovenik
 
 ## Povezava do aplikacije
