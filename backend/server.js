@@ -946,7 +946,7 @@ app.get("/newsletter/action", async (req, res) => {
 
       return res.send(`
         <h1>Uspešno potrjeno! 🎉</h1>
-        <p>Hvala, da si potrdil svojo prijavo na newsletter.</p>
+        <p>Hvala, da si potrdil svojo prijavo na naša obvestila.</p>
       `);
     }
 

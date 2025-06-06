@@ -42,6 +42,10 @@ export function SignIn() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast.success("Uspešna prijava!");
+      if(subscribe){
+
+        handleSubscribe();
+      }
       // Preusmeritev se zgodi v onAuthStateChanged (hook)
     } catch (e) {
       console.error("Napaka pri prijavi:", e);
@@ -67,6 +71,27 @@ export function SignIn() {
     }
   };
 
+  const handleSubscribe = async () => {
+    try {
+      const res = await fetch("https://bestpriceprojekt-production.up.railway.app/api/subscribe-newsletter", { //https://bestpriceprojekt-production.up.railway.app/api/subscribe-newsletter
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+       
+      if (!res.ok) {
+        toast.error(data.error || "Prišlo je do napake pri prijavi.");
+      } else {
+        toast.success(data.message || `Hvala za prijavo! Poslali vam bomo novice na ${email}`);
+        setEmail("");
+        setSubscribe(false);
+      }
+  }
+  catch (error) {
+        toast.error("Napaka pri povezavi s strežnikom. Poskusi znova.");
+      } 
+    }
 
   return (
     <section className="m-8 flex gap-4">
@@ -136,7 +161,7 @@ export function SignIn() {
                   color="gray"
                   className="flex items-center justify-start font-medium"
                 >
-                  Naroči me na e-novice
+                  Naroči me na e-obvestila
                 </Typography>
               }
               containerProps={{ className: "-ml-2.5" }}
