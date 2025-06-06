@@ -11,7 +11,7 @@ import CategoryAvgPriceChart from '@/widgets/cards/CategoryAvgPriceChart';
 import CategoryDistributionDonutChart from '@/widgets/cards/CategoryDistributionDonutChart';
 import { ArrowLeftRight } from 'lucide-react';
 import { Footer } from '@/widgets/layout';
-import { CategoryDiscountShareChart } from '@/widgets/cards';
+import { CategoryCountByStoreChart, CategoryDiscountShareChart } from '@/widgets/cards';
 
 // SWR fetcher is configured globally via SWRConfig in App.jsx
 export function Dashboard() {
@@ -113,6 +113,10 @@ export function Dashboard() {
         <br />
         <div className="w-full min-h-[450px]">
           <CategoryDistributionDonutChart />
+        </div>
+        <br />
+        <div className="w-full min-h-[450px]">
+          <CategoryCountByStoreChart />
         </div>
       </section>
       <br />
