@@ -3,14 +3,12 @@ const { MongoMemoryServer } = require("mongodb-memory-server");
 const { MongoClient, ObjectId } = require("mongodb");
 const app = require("../server");
 
-// Nastavimo testno okolje
 process.env.NODE_ENV = "test";
 
 let mongoServer;
 let client;
 let db;
 
-// Testni podatki
 const testProducts = {
   tus: [
     {
@@ -57,10 +55,8 @@ const testProducts = {
   ],
 };
 
-// Priprava testne baze
 beforeAll(async () => {
   try {
-    // Zaženemo spomin MongoDB strežnik
     mongoServer = await MongoMemoryServer.create({
       instance: {
         storageEngine: "wiredTiger",
@@ -71,7 +67,6 @@ beforeAll(async () => {
 
     console.log("Testna MongoDB URI:", uri);
 
-    // Povežemo se z testno bazo
     client = new MongoClient(uri, {
       connectTimeoutMS: 10000,
       socketTimeoutMS: 10000,
@@ -80,14 +75,12 @@ beforeAll(async () => {
     await client.connect();
     db = client.db("testdb");
 
-    // Nadomestimo originalne kolekcije v aplikaciji z našimi testnimi
     app.tusCollection = db.collection("tus");
     app.merkatorCollection = db.collection("mercatorproducts");
     app.jagerCollection = db.collection("jagerproducts");
     app.lidlCollection = db.collection("lidl");
     app.hoferCollection = db.collection("hofer");
 
-    // Vstavimo testne podatke
     await app.tusCollection.insertMany(testProducts.tus);
     await app.merkatorCollection.insertMany(testProducts.mercatorproducts);
     await app.lidlCollection.insertMany(testProducts.lidl);
@@ -98,7 +91,6 @@ beforeAll(async () => {
   }
 });
 
-// Počistimo podatke med testi
 afterEach(async () => {
   try {
     await db.collection("tus").deleteMany({});
@@ -107,7 +99,6 @@ afterEach(async () => {
     await db.collection("hofer").deleteMany({});
     await db.collection("jagerproducts").deleteMany({});
 
-    // Ponovno vstavimo testne podatke
     await app.tusCollection.insertMany(testProducts.tus);
     await app.merkatorCollection.insertMany(testProducts.mercatorproducts);
     await app.lidlCollection.insertMany(testProducts.lidl);
@@ -117,7 +108,6 @@ afterEach(async () => {
   }
 });
 
-// Zapremo povezave po testih
 afterAll(async () => {
   try {
     if (client) await client.close();

@@ -160,43 +160,45 @@ app.get("/api/all-products", async (req, res) => {
 
     const lidlRaw = await lidlCollection.find({}).toArray();
     const lidl = lidlRaw
-  .filter((p) => {
-    const now = new Date();
+      .filter((p) => {
+        const now = new Date();
 
-    const dostopnoText = p.dostopno?.trim().toLowerCase();
-    if (dostopnoText === "v trgovini") {
-      return true;
-    }
+        const dostopnoText = p.dostopno?.trim().toLowerCase();
+        if (dostopnoText === "v trgovini") {
+          return true;
+        }
 
-    let match = p.dostopno?.match(/od (\d{2}\.\d{2}\.) do (\d{2}\.\d{2}\.)/);
-    if (!match) {
-      match = p.dostopno?.match(/od (\d{2}\.\d{2}\.)/);
-      if (match) {
-        const [_, fromStr] = match;
+        let match = p.dostopno?.match(
+          /od (\d{2}\.\d{2}\.) do (\d{2}\.\d{2}\.)/
+        );
+        if (!match) {
+          match = p.dostopno?.match(/od (\d{2}\.\d{2}\.)/);
+          if (match) {
+            const [_, fromStr] = match;
+            const year = now.getFullYear();
+            const [fromDay, fromMonth] = fromStr.split(".").map(Number);
+
+            const from = new Date(year, fromMonth - 1, fromDay);
+            return now >= from;
+          }
+
+          return false;
+        }
+
+        const [_, fromStr, toStr] = match;
         const year = now.getFullYear();
         const [fromDay, fromMonth] = fromStr.split(".").map(Number);
+        const [toDay, toMonth] = toStr.split(".").map(Number);
 
         const from = new Date(year, fromMonth - 1, fromDay);
-        return now >= from;
-      }
+        const to = new Date(year, toMonth - 1, toDay, 23, 59, 59);
 
-      return false;
-    }
-
-    const [_, fromStr, toStr] = match;
-    const year = now.getFullYear();
-    const [fromDay, fromMonth] = fromStr.split(".").map(Number);
-    const [toDay, toMonth] = toStr.split(".").map(Number);
-
-    const from = new Date(year, fromMonth - 1, fromDay);
-    const to = new Date(year, toMonth - 1, toDay, 23, 59, 59);
-
-    return now >= from && now <= to;
-  })
-  .map((p) => ({
-    ...p,
-    store: "Lidl",
-  }));
+        return now >= from && now <= to;
+      })
+      .map((p) => ({
+        ...p,
+        store: "Lidl",
+      }));
 
     const hoferRaw = await hoferCollection.find({}).toArray();
     const hofer = hoferRaw.map((p) => {
@@ -855,13 +857,28 @@ app.post("/api/subscribe-newsletter", async (req, res) => {
       to: email,
       subject: "Hvala za prijavo na BestPrice obvestila!",
       html: `
-        <h1>Hvala za prijavo na naša obvestila!</h1>
-        <p>Tedensko vam bomo poslali obvestila o najboljših akcijah.</p>
-        <p>Če želiš, potrdi svojo prijavo tukaj: 
-          <a href="https://bestprice-4c8cd.firebaseapp.com/newsletter/action?email=${encodeURIComponent(email)}&action=confirm&token=${token}">
-            Potrdi prijavo
-          </a>
-        </p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; background-color: #f9f9f9; border-radius: 8px; border: 1px solid #ddd;">
+          <h1 style="color: #2e7d32;">🎉 Hvala za prijavo!</h1>
+          <p style="font-size: 16px; color: #333;">
+            Veseli nas, da si se prijavil/a na naša obvestila. Vsak teden ti bomo poslali izbrane akcije z najboljšimi ponudbami.
+          </p>
+            
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="https://bestprice-4c8cd.firebaseapp.com/newsletter/action?email=${encodeURIComponent(email)}&action=confirm&token=${token}"
+               style="background-color: #2e7d32; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-size: 16px; display: inline-block;">
+              ✅ Potrdi prijavo
+            </a>
+          </div>
+            
+          <p style="font-size: 14px; color: #777;">
+            Če tega sporočila nisi pričakoval/a, ga lahko ignoriraš.
+          </p>
+            
+          <hr style="margin-top: 32px;" />
+          <p style="font-size: 12px; color: #aaa;">
+            BestPrice.si • Samo najboljše akcije na enem mestu
+          </p>
+        </div>
       `,
     });
 
