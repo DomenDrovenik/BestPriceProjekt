@@ -182,22 +182,26 @@ async function autoScroll(page) {
         await collection.insertOne(newDoc);
         savedCount++;
       } else {
+        const updateFields = {
+          price,
+          actionPrice,
+          image: item.image,
+          category: item.category,
+          active: true,
+        };
+
         const updateDoc = {
-          $set: {
-            price,
-            actionPrice,
-            image: item.image,
-            category: item.category,
-            updatedAt: new Date(),
-            active: true,
-          },
+          $set: updateFields,
         };
 
         if (shouldAddToHistory) {
+          updateFields.updatedAt = new Date();
           updateDoc.$push = {
             previousPrices: { price: currentPrice, date: new Date() },
           };
         }
+
+        await collection.updateOne(filter, updateDoc);
 
         await collection.updateOne(filter, updateDoc);
         savedCount++;

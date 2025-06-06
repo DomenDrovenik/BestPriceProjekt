@@ -1,20 +1,18 @@
 const admin = require("firebase-admin");
 const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 const { Resend } = require("resend");
-// const serviceAccount = require("./serviceAccountKey.json");
+
 require("dotenv").config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY);
 
-// Firestore init
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 const firestore = admin.firestore();
 const uri = process.env.DATABASE_URL;
 
-// MongoDB init
 const mongoClient = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -60,7 +58,6 @@ async function findProductById(id) {
   const productId = new ObjectId(id);
 
   for (const col of collections) {
-    // poišči po _id (če je ObjectId) ali productId
     let product = await col.findOne({ _id: productId });
     if (product) {
       return product;
@@ -76,7 +73,6 @@ async function sendPriceAlertEmail(userEmail, product, targetPrice) {
 
     await resend.emails.send({
       from: "BestPrice <noreply@bestpriceapp.me>",
-      // to: ["domen.drovenik@student.um.si"], //to: [`${userEmail}`],
       to: [`${userEmail}`],
       subject: `Cena za ${product.name} je padla!`,
       html: `

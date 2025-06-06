@@ -81,6 +81,14 @@ async function connectToMongoDB() {
   }
 }
 
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 app.get("/tus", async (req, res) => {
   try {
     const tusData = await tusCollection.find({}).toArray();
@@ -215,6 +223,8 @@ app.get("/api/all-products", async (req, res) => {
     });
 
     const all = [...tus, ...merkator, ...jager, ...lidl, ...hofer];
+    // const shuffled = shuffle(all);
+    // res.status(200).json(shuffled);
     res.status(200).json(all);
   } catch (error) {
     console.error("Napaka pri pridobivanju vseh izdelkov:", error);

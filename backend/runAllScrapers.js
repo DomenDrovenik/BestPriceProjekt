@@ -1,8 +1,6 @@
 const { spawn } = require("child_process");
 const path = require("path");
 
-// const scrapeJager = require("./scraper_jager");
-// const scrapeMercator = require("./scraper_mercator");
 const runTusScraper = require("./scraperTus");
 
 function runScript(file) {

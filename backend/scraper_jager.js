@@ -196,19 +196,21 @@ async function gotoWithRetry(page, url, retries = 3) {
         await collection.insertOne(doc);
         savedCount++;
       } else {
+        const updateFields = {
+          price,
+          actionPrice,
+          akcija: item.akcija ? "true" : "false",
+          image: item.image,
+          category: item.category,
+          active: true,
+        };
+
         const updateDoc = {
-          $set: {
-            price,
-            actionPrice,
-            akcija: item.akcija ? "true" : "false",
-            image: item.image,
-            category: item.category,
-            active: true,
-            updatedAt: new Date(),
-          },
+          $set: updateFields,
         };
 
         if (shouldAddToHistory) {
+          updateFields.updatedAt = new Date(); // updatedAt samo če se je cena spremenila
           updateDoc.$push = {
             previousPrices: { price: currentPrice, date: new Date() },
           };
