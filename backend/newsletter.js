@@ -124,40 +124,18 @@ async function getTopDiscountedProducts() {
   }
 
   const topDiscounts = allDiscounts
-    .sort((a, b) => b.discountPercentage - a.discountPercentage)
-    .slice(0, 5);
-
-  const withTrend = topDiscounts.map((item) => {
-    const previous = Array.isArray(item.previousPrices)
-      ? item.previousPrices
-      : [];
-    const price = parseFloat(item.price);
-    const actionPrice = parseFloat(item.actionPrice);
-    const previousValues = previous.map((p) => parseFloat(p.price));
-
-    let trendArray = previous.map((p) => ({ pv: parseFloat(p.price) }));
-
-    const isPriceInPrevious = previousValues.includes(price);
-    const isActionInPrevious = previousValues.includes(actionPrice);
-
-    if (!isPriceInPrevious && isActionInPrevious) {
-      const index = trendArray.findIndex((t) => t.pv === actionPrice);
-      if (index !== -1) {
-        trendArray.splice(index, 0, { pv: price });
-      }
-    }
-
-    if (!isActionInPrevious) {
-      trendArray.push({ pv: actionPrice });
-    }
-
-    return {
+    .map((item) => ({
       ...item,
-      trend: trendArray,
-    };
-  });
+      discountPercentage: (1 - item.actionPrice / item.price) * 100,
+    }))
+    .sort((a, b) => b.discountPercentage - a.discountPercentage)
+    .slice(0, 10)
+    .map((item) => ({
+      ...item,
+      discountPercentage: item.discountPercentage.toFixed(2) + "%", // npr. "35.29%"
+    }));
 
-  return withTrend;
+  return topDiscounts;
 }
 
 async function sendWeeklyNewsletter() {
@@ -173,12 +151,30 @@ async function sendWeeklyNewsletter() {
     const itemsHtml = discounted
       .map(
         (item) => `
-        <div style="margin-bottom: 16px;">
-          <strong>${item.name}</strong><br/>
-          Cena: <s>${item.price}€</s> → <strong>${item.actionPrice}€</strong><br/>
-          Trgovina: ${item.store}<br/>
-        </div>
-      `
+      <div style="
+        flex: 1 1 200px;
+        max-width: 240px;
+        box-sizing: border-box;
+        margin: 8px;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        text-align: center;
+        background-color: #fafafa;
+      ">
+        <img src="${item.image}" alt="${item.name}" style="max-width: 100%; height: auto; border-radius: 4px;" />
+        <h3 style="font-size: 16px; margin: 12px 0 4px;">${item.name}</h3>
+        <p style="margin: 4px 0;">
+          Cena: <s>${item.price}€</s> → <strong style="color: #d32f2f;">${item.actionPrice}€</strong>
+        </p>
+        <p style="margin: 4px 0; font-size: 14px; color: #388e3c;">
+          🔻 Popust: ${item.discountPercentage}
+        </p>
+        <p style="margin: 0; font-size: 14px; color: #555;">
+          Trgovina: ${item.store}
+        </p>
+      </div>
+    `
       )
       .join("");
 
@@ -189,13 +185,23 @@ async function sendWeeklyNewsletter() {
           to: sub.email,
           subject: "Tvoje tedensko BestPrice obvestilo 📰",
           html: `
-            <h1>Hej!</h1>
+             <h1>Hej!</h1>
             <p>Tu so tedenske akcije, ki jih ne smeš zamuditi!</p>
-            ${itemsHtml}
-            <p><a href="https://bestprice-4c8cd.firebaseapp.com">Poglej vse aktualne ponudbe na BestPrice</a></p>
+            <div style="
+              display: flex;
+              flex-wrap: wrap;
+              justify-content: center;
+              margin: 0 -8px;
+            ">
+              ${itemsHtml}
+            </div>
+            <p style="margin-top: 32px;">
+              <a href="https://bestprice-4c8cd.firebaseapp.com">Poglej vse aktualne ponudbe na BestPrice</a>
+            </p>
             <hr />
             <small>
-             Če se želiš odjaviti, klikni tukaj: <a href="https://bestprice-4c8cd.firebaseapp.com/newsletter/action?email=${encodeURIComponent(sub.email)}&token=${sub.confirmationToken}&action=unsubscribe">Odjavi se</a>
+              Če se želiš odjaviti, klikni tukaj:
+              <a href="https://bestprice-4c8cd.firebaseapp.com/newsletter/action?email=${encodeURIComponent(sub.email)}&token=${sub.confirmationToken}&action=unsubscribe">Odjavi se</a>
             </small>
           `,
         });

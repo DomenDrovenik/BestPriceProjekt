@@ -162,10 +162,8 @@ async function runTusScraper() {
         image: item.image,
       });
 
-      const updates = {};
-      const previousPrices = existing?.previousPrices || [];
       let changed = false;
-
+      const previousPrices = existing?.previousPrices || [];
       const lastEntry = previousPrices.at(-1);
 
       const hasAction =
@@ -173,6 +171,12 @@ async function runTusScraper() {
       const prevHadAction =
         existing?.actionPrice !== null && existing?.actionPrice !== undefined;
 
+      const updates = {
+        price: item.price,
+        active: true,
+      };
+
+      // --- Handle action price ---
       if (hasAction) {
         if (!lastEntry || lastEntry.price !== item.actionPrice) {
           previousPrices.push({
@@ -212,10 +216,7 @@ async function runTusScraper() {
         }
       }
 
-      updates.updatedAt = now;
-      updates.price = item.price;
       updates.previousPrices = previousPrices;
-      updates.active = true;
 
       if (!existing) {
         await collection.insertOne({
@@ -229,20 +230,27 @@ async function runTusScraper() {
       }
 
       if (changed) {
+        updates.updatedAt = now;
+
         const updateOps = {};
+        if (updates.$unset) updateOps.$unset = updates.$unset;
 
-        if (updates.$unset) {
-          updateOps.$unset = updates.$unset;
+        updateOps.$set = {
+          price: updates.price,
+          previousPrices: updates.previousPrices,
+          active: true,
+          updatedAt: updates.updatedAt,
+        };
+
+        if (updates.actionPrice) {
+          updateOps.$set.actionPrice = updates.actionPrice;
         }
-
-        updateOps.$set = { ...updates };
-        delete updateOps.$set.$unset;
 
         await collection.updateOne({ _id: existing._id }, updateOps);
       } else {
         await collection.updateOne(
           { _id: existing._id },
-          { $set: { updatedAt: now, active: true } }
+          { $set: { active: true } }
         );
       }
     }
