@@ -35,7 +35,7 @@ export function CallToAction() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Prišlo je do napake pri prijavi.");
+        toast.error(data.error || "Prišlo je do napake pri prijavi.");
       } else {
         toast.success(data.message || `Hvala za prijavo! Poslali vam bomo novice na ${email}`);
         setEmail("");
