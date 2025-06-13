@@ -162,5 +162,5 @@ Spletni brskalnik
 
 ## Povezava do aplikacije
 https://bestprice-4c8cd.firebaseapp.com
-
+https://potovanja.my.canva.site/bestprice
 
