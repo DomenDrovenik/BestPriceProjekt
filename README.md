@@ -21,7 +21,7 @@ Aplikacija BestPrice omogoča:
 ## Ključne funkcionalnosti
 
 - **Primerjava cen**  
-  Obiskovalci aplikacije lahko hitro vidijo trenutno ceno izdelka v več priljubljenih trgovinah (npr. Mercator, Spar, Hofer, Tuš).  
+  Obiskovalci aplikacije lahko hitro vidijo trenutno ceno izdelka v več priljubljenih trgovinah (npr. Mercator, Jager, Hofer, Tuš).  
 
 - **Zgodovina cen**  
   Za vsak izdelek je na voljo graf in seznam preteklih cen, ki uporabniku omogočata primerjavo gibanja cen skozi čas.  
@@ -43,7 +43,7 @@ Aplikacija BestPrice omogoča:
   - Trend gibanja povprečnih cen skozi čas.
 
 - **Izvoz v PDF**  
-  Nakupovalni seznam je mogoče izvoziti v PDF, v katerem so zajeti slike izdelkov, imena, količine, cene ter skupne vsote, da si uporabnik lahko seznam shrani ali natisne.
+  Nakupovalni seznam je mogoče izvoziti v PDF, v katerem so zajeti imena, količine, cene ter skupne vsote, da si uporabnik lahko seznam shrani ali natisne.
 
 ## Tehnološki sklad
 
