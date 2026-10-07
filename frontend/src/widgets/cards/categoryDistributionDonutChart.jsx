@@ -45,7 +45,7 @@ const normalizeCategory = (category, subcategory) => {
 };
 
 export function CategoryDistributionDonutChart() {
-  const { data: products, error } = useSWR('https://bestpriceprojekt-production.up.railway.app/api/all-products', fetcher);
+  const { data: products, error } = useSWR('https://bestpriceprojekt.onrender.com/api/all-products', fetcher);
   // Stanje za zaznavanje mobilnega pogleda
   const [isMobile, setIsMobile] = useState(false);
 

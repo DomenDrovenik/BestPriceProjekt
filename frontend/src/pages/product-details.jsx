@@ -96,7 +96,7 @@ useEffect(() => {
         setLoading(true);
         try {
           // 1) Fetch product, which now includes previousPrices array
-          const resP = await fetch(`https://bestpriceprojekt-production.up.railway.app/api/products/${id}`);
+          const resP = await fetch(`https://bestpriceprojekt.onrender.com/api/products/${id}`);
           // const resP = await fetch(`http://localhost:3000/api/products/${id}`);
 
           const dataP = await resP.json();
@@ -136,7 +136,7 @@ useEffect(() => {
           setGraphHistory(graphData);
   
           // 3) Comments remain fetched separately
-          const resC = await fetch(`https://bestpriceprojekt-production.up.railway.app/api/products/${id}/comments`);
+          const resC = await fetch(`https://bestpriceprojekt.onrender.com/api/products/${id}/comments`);
           setComments(await resC.json());
         } catch (err) {
           console.error("Napaka pri nalaganju podrobnosti:", err);
@@ -196,7 +196,7 @@ useEffect(() => {
     };
 
     try {
-      const res = await fetch(`https://bestpriceprojekt-production.up.railway.app/api/products/${id}/comments`, {
+      const res = await fetch(`https://bestpriceprojekt.onrender.com/api/products/${id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(comment),
@@ -220,7 +220,7 @@ useEffect(() => {
 
   const handleEditSubmit = async (userId) => {
     try {
-      const res = await fetch(`https://bestpriceprojekt-production.up.railway.app/api/products/${id}/comments/${userId}`, {
+      const res = await fetch(`https://bestpriceprojekt.onrender.com/api/products/${id}/comments/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -251,7 +251,7 @@ useEffect(() => {
     toggleOpen();
 
     try {
-      const res = await fetch(`https://bestpriceprojekt-production.up.railway.app/api/products/${id}/comments/${userId}`, {
+      const res = await fetch(`https://bestpriceprojekt.onrender.com/api/products/${id}/comments/${userId}`, {
         method: "DELETE",
       });
 

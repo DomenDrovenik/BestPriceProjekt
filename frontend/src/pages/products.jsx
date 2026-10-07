@@ -53,7 +53,7 @@ export function Products() {
   const [searchParams] = useSearchParams();
 
   const { data: productsData, error } = useSWR(
-    'https://bestpriceprojekt-production.up.railway.app/api/all-products',
+    'https://bestpriceprojekt.onrender.com/api/all-products',
     fetcher
   );
 

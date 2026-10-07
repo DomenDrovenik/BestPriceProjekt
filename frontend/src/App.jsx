@@ -69,11 +69,11 @@ export default function App() {
 
   useEffect(() => {
     // Prefetchanje ključnih endpointov
-    mutate("https://bestpriceprojekt-production.up.railway.app/api/basket/basic", fetcher("https://bestpriceprojekt-production.up.railway.app/api/basket/basic"), false);
-    mutate("https://bestpriceprojekt-production.up.railway.app/api/basket/extended", fetcher("https://bestpriceprojekt-production.up.railway.app/api/basket/extended"), false);
-    mutate("https://bestpriceprojekt-production.up.railway.app/api/dashboard/average-prices", fetcher("https://bestpriceprojekt-production.up.railway.app/api/dashboard/average-prices"), false);
-    mutate("https://bestpriceprojekt-production.up.railway.app/api/dashboard/price-trends", fetcher("https://bestpriceprojekt-production.up.railway.app/api/dashboard/price-trends"), false);
-    mutate("https://bestpriceprojekt-production.up.railway.app/api/all-products", fetcher("https://bestpriceprojekt-production.up.railway.app/api/all-products"), false);
+    mutate("https://bestpriceprojekt.onrender.com/api/basket/basic", fetcher("https://bestpriceprojekt.onrender.com/api/basket/basic"), false);
+    mutate("https://bestpriceprojekt.onrender.com/api/basket/extended", fetcher("https://bestpriceprojekt.onrender.com/api/basket/extended"), false);
+    mutate("https://bestpriceprojekt.onrender.com/api/dashboard/average-prices", fetcher("https://bestpriceprojekt.onrender.com/api/dashboard/average-prices"), false);
+    mutate("https://bestpriceprojekt.onrender.com/api/dashboard/price-trends", fetcher("https://bestpriceprojekt.onrender.com/api/dashboard/price-trends"), false);
+    mutate("https://bestpriceprojekt.onrender.com/api/all-products", fetcher("https://bestpriceprojekt.onrender.com/api/all-products"), false);
   }, []);
 
   return (

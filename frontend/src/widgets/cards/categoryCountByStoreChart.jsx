@@ -53,7 +53,7 @@ const normalizeCategory = (category, subcategory) => {
 export function CategoryCountByStoreChart() {
   // 1) Pridobimo vse izdelke
   const { data: products, error } = useSWR(
-    "https://bestpriceprojekt-production.up.railway.app/api/all-products",
+    "https://bestpriceprojekt.onrender.com/api/all-products",
     fetcher
   );
 

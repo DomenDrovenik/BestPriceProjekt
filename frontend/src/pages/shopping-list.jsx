@@ -348,7 +348,7 @@ useEffect(() => {
 
     try {
       const res = await fetch(
-        `https://bestpriceprojekt-production.up.railway.app/api/search?name=${encodeURIComponent(searchQuery)}`
+        `https://bestpriceprojekt.onrender.com/api/search?name=${encodeURIComponent(searchQuery)}`
         // `http://localhost:3000/api/search?name=${encodeURIComponent(searchQuery)}`
       );
       const data = await res.json();
@@ -421,7 +421,7 @@ const fetchBestMatches = async (items) => {
   for (const item of items) {
       try {
       const res = await fetch(
-        `https://bestpriceprojekt-production.up.railway.app/api/search?name=${encodeURIComponent(item.name)}`
+        `https://bestpriceprojekt.onrender.com/api/search?name=${encodeURIComponent(item.name)}`
         // `http://localhost:3000/api/search?name=${encodeURIComponent(item.name)}`
       );
       const data = await res.json();

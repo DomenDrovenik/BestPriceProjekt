@@ -14,7 +14,7 @@ export function PriceComparison({ productName }) {
       try {
         
         const res = await fetch(
-          `https://bestpriceprojekt-production.up.railway.app/api/compare-prices?name=${encodeURIComponent(productName)}`,
+          `https://bestpriceprojekt.onrender.com/api/compare-prices?name=${encodeURIComponent(productName)}`,
             { cache: "no-store" }
         );
         if (!res.ok) throw new Error(`Status ${res.status}`);

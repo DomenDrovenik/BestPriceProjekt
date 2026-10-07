@@ -23,7 +23,7 @@ export default function Newsletter() {
     const fetchAction = async () => {
       try {
         const res = await fetch(
-          `https://bestpriceprojekt-production.up.railway.app/newsletter/action?email=${encodeURIComponent(email)}&action=${action}&token=${token}`
+          `https://bestpriceprojekt.onrender.com//newsletter/action?email=${encodeURIComponent(email)}&action=${action}&token=${token}`
         );
         const html = await res.text();
         setHtmlResponse(html);

@@ -52,7 +52,7 @@ const normalizeCategory = (category, subcategory) => {
 
 export function CategoryAvgPriceChart() {
   // Z uporabo useSWR pridobimo vse izdelke
-  const { data: products, error } = useSWR('https://bestpriceprojekt-production.up.railway.app/api/all-products', fetcher);
+  const { data: products, error } = useSWR('https://bestpriceprojekt.onrender.com/api/all-products', fetcher);
 
   // Stanje, ki pove, ali je mobilni pogled (širina < 768px)
   const [isMobile, setIsMobile] = useState(false);

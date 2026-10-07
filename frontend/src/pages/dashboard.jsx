@@ -17,10 +17,10 @@ import { CategoryCountByStoreChart, CategoryDiscountShareChart } from '@/widgets
 export function Dashboard() {
   // 1) Povprečne cene
   const { data: avgData, error: avgError } =
-    useSWR('https://bestpriceprojekt-production.up.railway.app/api/dashboard/average-prices');
+    useSWR('https://bestpriceprojekt.onrender.com//api/dashboard/average-prices');
   // 2) Trend cen
   const { data: trendResp, error: trendError } =
-    useSWR('https://bestpriceprojekt-production.up.railway.app/api/dashboard/price-trends');
+    useSWR('https://bestpriceprojekt.onrender.com/api/dashboard/price-trends');
 
   // Loading / napake
   const loading = !avgData || !trendResp;
