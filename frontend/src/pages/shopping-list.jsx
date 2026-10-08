@@ -13,6 +13,8 @@ import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import { Dialog, DialogHeader, DialogBody, DialogFooter, Textarea } from "@material-tailwind/react";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 
 export function ShoppingList() {
@@ -348,7 +350,7 @@ useEffect(() => {
 
     try {
       const res = await fetch(
-        `https://bestpriceprojekt.onrender.com/api/search?name=${encodeURIComponent(searchQuery)}`
+        `${API_URL}/api/search?name=${encodeURIComponent(searchQuery)}`
         // `http://localhost:3000/api/search?name=${encodeURIComponent(searchQuery)}`
       );
       const data = await res.json();
@@ -421,7 +423,7 @@ const fetchBestMatches = async (items) => {
   for (const item of items) {
       try {
       const res = await fetch(
-        `https://bestpriceprojekt.onrender.com/api/search?name=${encodeURIComponent(item.name)}`
+        `${API_URL}/api/search?name=${encodeURIComponent(item.name)}`
         // `http://localhost:3000/api/search?name=${encodeURIComponent(item.name)}`
       );
       const data = await res.json();

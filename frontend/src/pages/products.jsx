@@ -29,6 +29,8 @@ import {
 import useSWR from 'swr';
 import { Footer } from "@/widgets/layout";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
 export function Products() {
@@ -53,7 +55,7 @@ export function Products() {
   const [searchParams] = useSearchParams();
 
   const { data: productsData, error } = useSWR(
-    'https://bestpriceprojekt.onrender.com/api/all-products',
+    `${API_URL}/api/all-products`,
     fetcher
   );
 

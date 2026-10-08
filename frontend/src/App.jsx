@@ -6,9 +6,13 @@ import { Navbar } from "@/widgets/layout";
 import { Toaster } from "react-hot-toast";
 import routes from "@/routes";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 // Firebase uvoz
 import { auth } from "@/firebase";               // pot do vaše inicializacije
 import { onAuthStateChanged } from "firebase/auth";
+
+console.log("API_URL =", API_URL);
 
 // Globalni fetcher za SWR
 const fetcher = (url) => fetch(url).then((res) => res.json());
@@ -68,12 +72,35 @@ export default function App() {
   }, [initializing]);
 
   useEffect(() => {
-    // Prefetchanje ključnih endpointov
-    mutate("https://bestpriceprojekt.onrender.com/api/basket/basic", fetcher("https://bestpriceprojekt.onrender.com/api/basket/basic"), false);
-    mutate("https://bestpriceprojekt.onrender.com/api/basket/extended", fetcher("https://bestpriceprojekt.onrender.com/api/basket/extended"), false);
-    mutate("https://bestpriceprojekt.onrender.com/api/dashboard/average-prices", fetcher("https://bestpriceprojekt.onrender.com/api/dashboard/average-prices"), false);
-    mutate("https://bestpriceprojekt.onrender.com/api/dashboard/price-trends", fetcher("https://bestpriceprojekt.onrender.com/api/dashboard/price-trends"), false);
-    mutate("https://bestpriceprojekt.onrender.com/api/all-products", fetcher("https://bestpriceprojekt.onrender.com/api/all-products"), false);
+    mutate(
+      `${API_URL}/api/basket/basic`,
+      fetcher(`${API_URL}/api/basket/basic`),
+      false
+    );
+  
+    mutate(
+      `${API_URL}/api/basket/extended`,
+      fetcher(`${API_URL}/api/basket/extended`),
+      false
+    );
+  
+    mutate(
+      `${API_URL}/api/dashboard/average-prices`,
+      fetcher(`${API_URL}/api/dashboard/average-prices`),
+      false
+    );
+  
+    mutate(
+      `${API_URL}/api/dashboard/price-trends`,
+      fetcher(`${API_URL}/api/dashboard/price-trends`),
+      false
+    );
+  
+    mutate(
+      `${API_URL}/api/all-products`,
+      fetcher(`${API_URL}/api/all-products`),
+      false
+    );
   }, []);
 
   return (

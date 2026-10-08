@@ -17,6 +17,8 @@ import {
 import { auth } from "../firebase.js";
 import toast from "react-hot-toast";   // <— uvoz toast
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -73,7 +75,7 @@ export function SignIn() {
 
   const handleSubscribe = async () => {
     try {
-      const res = await fetch("https://bestpriceprojekt.onrender.com/api/subscribe-newsletter", { //https://bestpriceprojekt.onrender.com/api/subscribe-newsletter
+      const res = await fetch(`${API_URL}/api/subscribe-newsletter`, { //https://bestpriceprojekt.onrender.com/api/subscribe-newsletter
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

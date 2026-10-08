@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 export default function Newsletter() {
   const [htmlResponse, setHtmlResponse] = useState("");
@@ -23,7 +25,7 @@ export default function Newsletter() {
     const fetchAction = async () => {
       try {
         const res = await fetch(
-          `https://bestpriceprojekt.onrender.com//newsletter/action?email=${encodeURIComponent(email)}&action=${action}&token=${token}`
+          `${API_URL}/newsletter/action?email=${encodeURIComponent(email)}&action=${action}&token=${token}`
         );
         const html = await res.text();
         setHtmlResponse(html);

@@ -13,14 +13,16 @@ import { ArrowLeftRight } from 'lucide-react';
 import { Footer } from '@/widgets/layout';
 import { CategoryCountByStoreChart, CategoryDiscountShareChart } from '@/widgets/cards';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 // SWR fetcher is configured globally via SWRConfig in App.jsx
 export function Dashboard() {
   // 1) Povprečne cene
   const { data: avgData, error: avgError } =
-    useSWR('https://bestpriceprojekt.onrender.com//api/dashboard/average-prices');
+    useSWR(`${API_URL}/api/dashboard/average-prices`);
   // 2) Trend cen
   const { data: trendResp, error: trendError } =
-    useSWR('https://bestpriceprojekt.onrender.com/api/dashboard/price-trends');
+    useSWR(`${API_URL}/api/dashboard/price-trends`);
 
   // Loading / napake
   const loading = !avgData || !trendResp;
