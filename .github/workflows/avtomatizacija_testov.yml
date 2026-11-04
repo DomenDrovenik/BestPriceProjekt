@@ -1,0 +1,85 @@
+name: Playwright funkcionalni testi
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# TP-04 in TP-05 uporabljata isti testni račun v produkcijskem Firestore
+# (TP-05 izbriše vse aktivne alarme računa) – dva zagona hkrati bi si podatke prepisovala.
+concurrency:
+  group: e2e-test-account
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # PR-ji iz forkov nimajo dostopa do skrivnosti – tam se job ne zažene.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      CI: true
+      BASE_URL: http://localhost:5173
+      API_URL: http://localhost:3000
+      # Testni račun (geslo samo kot skrivnost)
+      TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || 'test@test.si' }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+      # Frontend (Vite) – lokalni backend in PRODUKCIJSKI Firebase projekt (testi pišejo le v podatke testnega računa)
+      VITE_API_URL: http://localhost:3000
+      VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+      VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+      VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+      VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+      VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+      VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+      PORT: 3000
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      # Backend brez ključa Resend ne zažene; testi ne pošiljajo e-pošte, zato zadošča lažen ključ.
+      RESEND_API_KEY: re_ci_dummy_key_not_used
+      # Backend ima puppeteer (scraperji); brskalnik puppeteer za teste ni potreben.
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+    steps:
+      - name: 1. Prevzem kode
+        uses: actions/checkout@v4
+
+      - name: Namestitev Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 2a. Namestitev odvisnosti – backend
+        working-directory: backend
+        run: npm ci
+
+      - name: 2b. Namestitev odvisnosti – frontend
+        working-directory: frontend
+        run: npm install
+
+      - name: 3. Namestitev brskalnika Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: 4. Priprava testnega okolja – preverjanje skrivnosti
+        run: |
+          missing=0
+          for v in TEST_USER_PASSWORD VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_PROJECT_ID VITE_FIREBASE_APP_ID DATABASE_URL DB_NAME; do
+            if [ -z "${!v}" ]; then echo "::error::Manjka skrivnost za $v"; missing=1; fi
+          done
+          exit $missing
+
+      - name: 5. Izvajanje Playwright testov (zažene backend in frontend prek webServer)
+        working-directory: frontend
+        run: npx playwright test tests/funkcionalni --project=chromium
+
+      - name: 6–7. Shranjevanje HTML poročila (tudi ob neuspehu)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 14

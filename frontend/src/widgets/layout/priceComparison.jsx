@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { Card, CardBody, Typography } from "@material-tailwind/react";
 import { Link as RouterLink } from "react-router-dom";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export function PriceComparison({ productName }) {
   const [comparisons, setComparisons] = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -14,7 +16,7 @@ export function PriceComparison({ productName }) {
       try {
         
         const res = await fetch(
-          `https://bestpriceprojekt.onrender.com/api/compare-prices?name=${encodeURIComponent(productName)}`,
+          `${API_URL}/api/compare-prices?name=${encodeURIComponent(productName)}`,
             { cache: "no-store" }
         );
         if (!res.ok) throw new Error(`Status ${res.status}`);

@@ -1,34 +1,34 @@
 import { test, expect } from '@playwright/test';
 
 test('prikazVsehProduktov', async ({ page }) => {
-  await page.goto('http://localhost:5173/home');
+  await page.goto('http://localhost:5174/home');
   await page.getByRole('link', { name: 'Izdelki' }).first().click();
   await expect(
   page.locator('div.grid.grid-cols-1.gap-6.sm\\:grid-cols-2.lg\\:grid-cols-3')
   ).toBeVisible({ timeout: 20000 });
 });
 test('prikazNavigacije', async ({ page }) => {
-  await page.goto('http://localhost:5173/home');
+  await page.goto('http://localhost:5174/home');
   await expect(
   page.locator('div.container.mx-auto.flex.items-center.justify-between.text-white')
   ).toBeVisible({ timeout: 20000 });
 });
 test('prikazNoge', async ({ page }) => {
-  await page.goto('http://localhost:5173/home');
+  await page.goto('http://localhost:5174/home');
   await page.getByRole('link', { name: 'Izdelki' }).first().click();
   await expect(
     page.locator('div.flex.flex-wrap.pt-6.text-center.lg\\:text-left')
   ).toBeVisible({ timeout: 20000 });
 });
 test('prikazTop5najbolZnižanih', async ({ page }) => {
-  await page.goto('http://localhost:5173/home');
+  await page.goto('http://localhost:5174/home');
   await page.getByRole('link', { name: 'Izdelki' }).first().click();
   await expect(
   page.locator('div.grid.gap-6')
   ).toBeVisible({ timeout: 20000 });
 });
 test('prikazZnizaihProduktov', async ({ page }) => {
-  await page.goto('http://localhost:5173/products');
+  await page.goto('http://localhost:5174/products');
   await page.getByRole('checkbox', { name: 'Samo akcijski izdelki' }).check();
   await expect(
   page.locator('div.grid.grid-cols-1.gap-6.sm\\:grid-cols-2.lg\\:grid-cols-3 > div').first()
@@ -37,7 +37,7 @@ test('prikazZnizaihProduktov', async ({ page }) => {
 });
 
 test('prikazFiltriranihPoTrgovini', async ({ page }) => {
-  await page.goto('http://localhost:5173/products');
+  await page.goto('http://localhost:5174/products');
 
   await page.getByRole('checkbox', { name: 'Hofer' }).check();
 
@@ -46,7 +46,7 @@ test('prikazFiltriranihPoTrgovini', async ({ page }) => {
   await expect(container).toBeVisible();
 });
 test('prikazFiltriranihPoKategoriji', async ({ page }) => {
-  await page.goto('http://localhost:5173/products');
+  await page.goto('http://localhost:5174/products');
 
   await page.getByRole('checkbox', { name: 'Sadje in zelenjava' }).check();
 
@@ -55,7 +55,7 @@ test('prikazFiltriranihPoKategoriji', async ({ page }) => {
   await expect(container).toBeVisible();
 });
 test('prikazFiltriranihPoOceni', async ({ page }) => {
-  await page.goto('http://localhost:5173/products');
+  await page.goto('http://localhost:5174/products');
 
   await page.getByRole('combobox').filter({ hasText: 'Privzeta razvrstitev' }).click();
   await page.getByRole('option', { name: 'Najvišja ocena' }).click();
@@ -68,7 +68,7 @@ test('prikazFiltriranihPoOceni', async ({ page }) => {
 });
 
 test('prikazFiltriranihPoCeni', async ({ page }) => {
-  await page.goto('http://localhost:5173/products');
+  await page.goto('http://localhost:5174/products');
 
   await page.getByPlaceholder(' ').nth(2).click();
   await page.getByPlaceholder(' ').nth(2).fill('1');
@@ -101,12 +101,12 @@ test('prikazFiltriranihPoCeni', async ({ page }) => {
 });
 
 test('prikazPodrobnostiIzdelka', async ({ page }) => {
-  await page.goto('http://localhost:5173/products');
+  await page.goto('http://localhost:5174/products');
   await page.locator('.mb-2 > a > .align-middle').first().click();
   await expect(page.locator('div.relative.flex.flex-col.bg-clip-border.rounded-xl.bg-white.text-gray-700.shadow-md.mb-6.max-w-lg.mx-auto')).toBeVisible();
 })
 test('prikazStatistike', async ({ page }) => {
-  await page.goto('http://localhost:5173/home');
+  await page.goto('http://localhost:5174/home');
   await page.getByRole('link', { name: 'Statistika' }).first().click();
   await expect(page.getByRole('heading', { name: 'Povprečne cene izdelkov po' })).toBeVisible({ timeout: 20000 });
   await expect(page.getByRole('heading', { name: 'Razvoj povprečnih cen skozi č' })).toBeVisible({ timeout: 20000 });
@@ -119,7 +119,7 @@ test('prikazStatistike', async ({ page }) => {
 
 test('loginLogoutTest', async ({ page }) => {
   test.setTimeout(60000); 
-  await page.goto('http://localhost:5173/home');
+  await page.goto('http://localhost:5174/home');
   await expect(page.getByRole('button', { name: 'Prijava' }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Prijava' }).first().click();
   await page.getByText('E-poštni naslov Geslo').click();
@@ -137,7 +137,7 @@ test('loginLogoutTest', async ({ page }) => {
 
 test('komentarjiOceneTest', async ({ page }) => {
   test.setTimeout(120000); 
-  await page.goto('http://localhost:5173/home');
+  await page.goto('http://localhost:5174/home');
 await expect(page.getByRole('button', { name: 'Prijava' }).first()).toBeVisible();
 await page.getByRole('button', { name: 'Prijava' }).first().click();
 await page.getByRole('textbox', { name: 'name@mail.com' }).click();
@@ -168,7 +168,7 @@ await page.getByRole('button', { name: 'Odjava' }).first().click();
 
 test('kosaricaTest', async ({ page }) => {
   test.setTimeout(120000); 
-  await page.goto('http://localhost:5173/sign-in');
+  await page.goto('http://localhost:5174/sign-in');
   await page.getByRole('textbox', { name: 'name@mail.com' }).click();
   await page.getByRole('textbox', { name: 'name@mail.com' }).fill('test1@gmail.com');
   await page.getByRole('textbox', { name: '********' }).click();
@@ -190,7 +190,7 @@ test('kosaricaTest', async ({ page }) => {
 
 test('alarmTest', async ({ page }) => {
   test.setTimeout(60000); 
-  await page.goto('http://localhost:5173/home');
+  await page.goto('http://localhost:5174/home');
 
   await page.getByRole('button', { name: 'Prijava' }).first().click();
   await page.getByRole('textbox', { name: 'name@mail.com' }).click();

@@ -34,3 +34,6 @@ package-lock.json
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Playwright – lokalne skrivnosti za funkcionalne teste
+.env.e2e
