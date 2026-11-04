@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Typography, Button } from '@material-tailwind/react';
-import { UserAvatar } from './UserAvatar';
+import { UserAvatar } from './userAvatar';
 
 function ProfileHeaderComponent({ fullName, email, photoURL, onConnect }) {
   return (
