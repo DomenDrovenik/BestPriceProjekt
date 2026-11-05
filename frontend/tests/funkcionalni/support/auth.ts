@@ -1,91 +1,73 @@
 import { expect, test, type Page } from '@playwright/test';
+import { fieldNear, passwordField } from './ui';
 
 /**
- * Prebere e-pošto prijavljenega uporabnika iz trajne seje Firebase Authentication
- * (IndexedDB »firebaseLocalStorageDb« ali localStorage). Vrne null, če seje ni.
- * Baze ne ustvari, če še ne obstaja (to bi pokvarilo inicializacijo Firebase SDK).
+ * Prijava in stanje prijave – samo prek vidnega vmesnika.
+ * Uporabnik ni prijavljen, ko navigacija ponuja »Prijava« in »Registracija« (TP-03, pričakovano 1);
+ * je prijavljen, ko ju navigacija ne ponuja več.
  */
-export async function getStoredAuthEmail(page: Page): Promise<string | null> {
-  return page.evaluate(async () => {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('firebase:authUser:')) {
-        const value = JSON.parse(localStorage.getItem(key) ?? 'null');
-        if (value?.email) return value.email as string;
-      }
-    }
-    const dbs = typeof indexedDB.databases === 'function' ? await indexedDB.databases() : [];
-    if (!dbs.some((d) => d.name === 'firebaseLocalStorageDb')) return null;
 
-    return new Promise<string | null>((resolve, reject) => {
-      const open = indexedDB.open('firebaseLocalStorageDb');
-      open.onerror = () => reject(open.error);
-      open.onsuccess = () => {
-        const db = open.result;
-        if (!db.objectStoreNames.contains('firebaseLocalStorage')) {
-          db.close();
-          resolve(null);
-          return;
-        }
-        const req = db.transaction('firebaseLocalStorage', 'readonly').objectStore('firebaseLocalStorage').getAll();
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => {
-          const entry = (req.result as Array<{ fbase_key: string; value?: { email?: string } }>).find((r) =>
-            String(r.fbase_key).startsWith('firebase:authUser:'),
-          );
-          db.close();
-          resolve(entry?.value?.email ?? null);
-        };
-      };
-    });
-  });
+export function navbar(page: Page) {
+  return page.getByRole('navigation');
 }
 
-/** Navigacijski gumb »Prijava« (prikazan le, ko uporabnik ni prijavljen). */
 export function navbarSignInButton(page: Page) {
-  return page.getByRole('navigation').getByRole('button', { name: 'Prijava', exact: true });
+  return navbar(page).getByRole('button', { name: 'Prijava', exact: true });
 }
 
-/** Navigacijski gumb »Registracija« (prikazan le, ko uporabnik ni prijavljen). */
 export function navbarSignUpButton(page: Page) {
-  return page.getByRole('navigation').getByRole('button', { name: 'Registracija', exact: true });
+  return navbar(page).getByRole('button', { name: 'Registracija', exact: true });
 }
 
-/** Navigacija prikazuje »Prijava« in »Registracija« → uporabnik ni prijavljen. */
-export async function expectNavbarSignedOut(page: Page) {
-  await expect(navbarSignInButton(page).first(), 'V navigaciji ni gumba »Prijava«').toBeVisible();
-  await expect(navbarSignUpButton(page).first(), 'V navigaciji ni gumba »Registracija«').toBeVisible();
+/** V navigaciji sta »Prijava« in »Registracija« → uporabnik ni prijavljen. */
+export async function expectNavbarSignedOut(page: Page, assert: typeof expect = expect, context = 'Uporabnik ni prijavljen') {
+  await assert(navbarSignInButton(page).first(), `${context}: v navigaciji ni gumba »Prijava«`).toBeVisible();
+  await assert(navbarSignUpButton(page).first(), `${context}: v navigaciji ni gumba »Registracija«`).toBeVisible();
 }
 
-/** Avatar prijavljenega uporabnika (<div role="button"> brez dostopnega imena; aplikacija nima data-testid). */
-export function navbarAvatar(page: Page) {
-  return page.getByRole('navigation').locator('div[role="button"]').first();
+/** Navigacija ne ponuja več »Prijava« in »Registracija« → uporabnik je prijavljen. */
+export async function expectNavbarSignedIn(page: Page) {
+  await expect(navbar(page).first()).toBeVisible();
+  await expect(navbarSignInButton(page), 'Po prijavi navigacija še vedno ponuja »Prijava«').toHaveCount(0);
+  await expect(navbarSignUpButton(page), 'Po prijavi navigacija še vedno ponuja »Registracija«').toHaveCount(0);
 }
 
-export async function expectSignedIn(page: Page, email: string) {
-  await expect
-    .poll(() => getStoredAuthEmail(page), { message: 'Firebase seja prijavljenega uporabnika ni bila vzpostavljena', timeout: 15_000 })
-    .toBe(email);
-  await expect(navbarSignInButton(page), 'Navigacija po prijavi ne sme več ponujati gumba »Prijava«').toHaveCount(0);
+/** Polja na strani »Prijava« (TP-03, korak 3–4). */
+export function emailField(page: Page) {
+  return fieldNear(page, page, 'E-poštni naslov');
 }
 
-export async function expectSignedOut(page: Page) {
-  await expect
-    .poll(() => getStoredAuthEmail(page), { message: 'V brskalniku je shranjena Firebase seja', timeout: 15_000 })
-    .toBeNull();
+/**
+ * »V navigaciji klikni »Profil««: če »Profil« ni neposredno v navigaciji,
+ * se najprej odpre meni v navigaciji (gumb brez besedila, npr. ikona uporabnika).
+ */
+export async function openProfileFromNavbar(page: Page) {
+  const profile = page.getByRole('link', { name: 'Profil', exact: true }).or(page.getByRole('button', { name: 'Profil', exact: true }));
+  // isVisible() ne čaka: najprej počakaj, da navigacija prikaže stanje prijavljenega uporabnika
+  // (po osvežitvi Firebase sejo obnovi asinhrono), sicer bi se odločitev o meniju sprejela prezgodaj.
+  await expectNavbarSignedIn(page);
+  if (!(await profile.first().isVisible())) {
+    await navbar(page).getByRole('button').filter({ hasNotText: /\S/ }).first().click();
+  }
+  await profile.first().click();
 }
 
-/** Predpogoj »uporabnik je prijavljen«: prijava prek obrazca /sign-in. */
+/** Predpogoj »uporabnik je prijavljen«: prijava na strani »Prijava« s testnim računom. */
 export async function signIn(page: Page, email: string, password: string) {
   await test.step(`Predpogoj: prijava uporabnika ${email}`, async () => {
     await page.goto('/sign-in');
-    await expect(page.getByRole('heading', { level: 2, name: 'Prijava' })).toBeVisible();
-    await page.getByPlaceholder('name@mail.com').fill(email);
-    await page.getByPlaceholder('********').fill(password);
+    await expect(page.getByRole('heading', { name: 'Prijava', exact: true })).toBeVisible();
+    await emailField(page).fill(email);
+    await passwordField(page).fill(password);
     await page.getByRole('button', { name: 'Prijava', exact: true }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Uspešna prijava!' })).toBeVisible();
-    // Po prijavi aplikacija preusmeri na »/« → »/home«.
-    await expect(page).toHaveURL(/\/home$/);
-    await expectSignedIn(page, email);
+    // Počakaj na odziv aplikacije (sprememba strani ali obvestilo), nato preveri stanje v navigaciji.
+    await expect
+      .poll(async () => !/\/sign-in$/.test(page.url()) || (await page.getByRole('status').or(page.getByRole('alert')).count()) > 0, {
+        message: 'Aplikacija se na klik »Prijava« ni odzvala',
+        timeout: 20_000,
+      })
+      .toBe(true);
+    await page.goto('/home');
+    await expectNavbarSignedIn(page);
   });
 }

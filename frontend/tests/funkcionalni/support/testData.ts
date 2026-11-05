@@ -7,7 +7,6 @@
  */
 
 export const BASE_URL = process.env.BASE_URL ?? 'http://localhost:5173';
-export const API_URL = process.env.API_URL ?? 'http://localhost:3000';
 
 /** Testni račun iz razdelka »Okolje izvedbe«. */
 export const TEST_USER = {
@@ -68,6 +67,11 @@ export const TP02 = {
   equivalent: {
     mustContain: [/trajn/i, /mleko/i],
     variant: /polnomastn|3[,.]5\s*%/i,
+    /**
+     * »Ponudba drugega izdelka (npr. drug izdelek istega proizvajalca …) pomeni neuspeh testa.«
+     * Različice, ki niso enakovredno trajno polnomastno mleko, čeprav ustrezajo zgornjim vzorcem.
+     */
+    mustNotContain: /brez laktoze|laktoz|čokolad|kakav|vanilij|jagod|banan|okus|kozje|ovčje|rastlinsk|ovsen|sojin|mandljev/i,
     packagingLitres: 1,
   },
   minOffers: 2,
@@ -87,10 +91,9 @@ export const TP04 = {
 export const TP05 = {
   searchTerm: 'Pomursko mleko',
   product: PRODUCT,
-  /** Ciljna cena: vnos s piko (polje type="number"). */
+  /** Ciljna cena 1,48 € (10 % pod trenutno ceno); vnos s piko, kot navaja testni primer. */
+  targetPrice: 1.48,
   targetPriceInput: '1.48',
-  /** Aplikacija prikazuje ciljno ceno s toFixed(2). */
-  targetPriceDisplayed: '1.48 €',
 };
 
 /** Številska primerjava cene iz specifikacije (1,65 €) s prikazano (1.65 €). */

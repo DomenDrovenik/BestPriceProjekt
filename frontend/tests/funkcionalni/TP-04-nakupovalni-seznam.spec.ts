@@ -1,146 +1,161 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
-import { TEST_USER, TP04, priceText, testUserPassword } from './support/testData';
+import { expect, test } from '@playwright/test';
+import { TEST_USER, TP04, testUserPassword } from './support/testData';
 import { signIn } from './support/auth';
+import { escapeRegex, includesPrice, pricesIn, visibleLines, waitForStableContent } from './support/ui';
 import {
-  listCard,
-  listItemRows,
-  listItemRowsFor,
-  openProfileAndWaitForData,
+  countListItems,
+  expectItemUnderStore,
+  newListField,
   openShoppingListPage,
-  profileAllListEntries,
-  removeItemRow,
+  openedList,
+  productRows,
+  removeRow,
+  searchHits,
   selectList,
-  storeGroup,
-  waitForAllLists,
+  storeSearchField,
 } from './support/userData';
 
 /**
  * TP-04 – Dodajanje izdelka v nakupovalni seznam in preverjanje trajnosti zapisa (F-06, F-07)
  * Predpogoji: uporabnik je prijavljen s test@test.si; izdelka ni na seznamu »Testni nakup«
  * (oziroma seznam še ne obstaja).
+ * Napisano samo po testnem primeru in vidnem vmesniku (gl. SLEDLJIVOST.md).
  *
- * Opomba: specifikacija navaja skrajšano ime »Trajno polnomastno Pomursko mleko, 1 l«;
- * v katalogu je izdelek zapisan s polnim imenom (support/testData.ts → PRODUCT.name).
+ * Opomba: testni primer navaja skrajšano ime »Trajno polnomastno Pomursko mleko, 1 l«;
+ * zadetek se išče po polnem imenu iz TP-01/TP-02 (support/testData.ts → PRODUCT.name).
+ *
+ * Ponovljivost: če test pade pred korakom 6, izdelek ostane na seznamu. Ob naslednji izvedbi ga
+ * priprava podatkov v koraku 2 odstrani (samo ta izdelek, samo na seznamu »Testni nakup«).
  */
-
-const STORES = ['Tuš', 'Mercator', 'Jager', 'Lidl', 'Hofer'];
-
-function searchBox(page: Page) {
-  return page.getByPlaceholder('Išči izdelek po trgovinah (npr. Coca-Cola)');
-}
-
-/** Zadetki iskalnika »Išči izdelek po trgovinah« (spustni seznam pod poljem). */
-function searchHits(details: Locator): Locator {
-  return details.locator('ul.absolute > li');
-}
-
 test('TP-04 – Dodajanje izdelka v nakupovalni seznam in preverjanje trajnosti zapisa', async ({ page }) => {
   test.setTimeout(180_000);
   const { listName, searchTerm, product } = TP04;
-  let listsOnProfile = 0;
-  let createdList = false;
   let initialItemCount = 0;
-  let details!: Locator;
+
+  /** Vrstica izdelka na seznamu: natanko ena, s ceno 1,65 €, pod trgovino Mercator. */
+  async function expectAddedOnceWithPrice(list: Awaited<ReturnType<typeof openedList>>, context: string) {
+    const rows = await productRows(list, product.name);
+    expect(rows, `${context}: izdelek ni na seznamu natanko enkrat`).toHaveLength(1);
+    const rowText = await rows[0].innerText();
+    expect(includesPrice(pricesIn(rowText), product.price), `${context}: cena izdelka na seznamu ni ${product.price} €`).toBe(true);
+    await expectItemUnderStore(page, product.name, product.store, product.price);
+  }
 
   await test.step('Predpogoj 1: uporabnik je prijavljen s testnim računom', async () => {
     await signIn(page, TEST_USER.email, testUserPassword());
-    await openProfileAndWaitForData(page, TEST_USER.email);
-    listsOnProfile = await profileAllListEntries(page).count();
+    // Prijava mora biti dejansko vzpostavljena – sicer test ne preverja prijavljenega uporabnika.
+    const nav = page.getByRole('navigation');
+    await expect(
+      nav.getByRole('link', { name: 'Profil' }).or(nav.getByRole('button', { name: 'Profil' })).first(),
+      'Predpogoj 1: uporabnik ni prijavljen (v navigaciji ni »Profil«)',
+    ).toBeVisible();
+    await expect(nav.getByRole('button', { name: 'Prijava', exact: true }), 'Predpogoj 1: v navigaciji je še »Prijava«').toHaveCount(0);
   });
 
   await test.step('Korak 1: Odpri stran »Nakupovalni seznam«', async () => {
     await openShoppingListPage(page);
     // Pričakovano 1: prikazani so uporabnikovi seznami in polje »Ime novega seznama...«.
-    await waitForAllLists(page, listsOnProfile);
-    await expect(page.getByPlaceholder('Ime novega seznama...')).toBeEnabled();
+    await expect(newListField(page), 'Ni polja »Ime novega seznama...«').toBeVisible();
+    await expect(newListField(page)).toBeEnabled();
   });
 
   await test.step(`Korak 2: Po potrebi ustvari seznam »${listName}« in ga odpri`, async () => {
-    if ((await listCard(page, listName).count()) === 0) {
-      await page.getByPlaceholder('Ime novega seznama...').fill(listName);
+    const exists = (await page.getByText(listName, { exact: true }).count()) > 0;
+    if (!exists) {
+      await newListField(page).fill(listName);
       await page.getByRole('button', { name: 'Ustvari seznam', exact: true }).click();
-      await expect(listCard(page, listName), 'Seznam ni bil ustvarjen').toHaveCount(1);
-      createdList = true;
+      await expect(page.getByText(listName, { exact: true }).first(), `Seznam »${listName}« ni bil ustvarjen`).toBeVisible();
     }
-    const existing = await listCard(page, listName).count();
-    if (existing > 1) {
-      test.info().annotations.push({ type: 'Opozorilo', description: `Obstaja ${existing} seznamov »${listName}«; uporabljen je prvi.` });
-    }
-    test.info().annotations.push({ type: 'Seznam', description: createdList ? 'ustvarjen v testu' : 'že obstajal' });
+    test.info().annotations.push({ type: 'Seznam', description: exists ? 'že obstajal' : 'ustvarjen v testu' });
 
-    details = await selectList(page, listName);
+    const list = await selectList(page, listName);
 
     // Predpogoj 2: izdelka ni na seznamu. Ostanek prekinjene izvedbe se odstrani (priprava podatkov).
-    const leftovers = listItemRowsFor(details, product.name);
-    const leftoverCount = await leftovers.count();
-    if (leftoverCount > 0) {
-      test.info().annotations.push({ type: 'Priprava podatkov', description: `Odstranjenih ${leftoverCount} ostankov izdelka iz prejšnje izvedbe.` });
-      for (let i = leftoverCount; i > 0; i--) {
-        await removeItemRow(leftovers.first());
-        await expect(leftovers).toHaveCount(i - 1);
+    let leftovers = await productRows(list, product.name);
+    if (leftovers.length > 0) {
+      test.info().annotations.push({ type: 'Priprava podatkov', description: `Odstranjenih ${leftovers.length} ostankov izdelka iz prejšnje izvedbe.` });
+      while (leftovers.length > 0) {
+        await removeRow(leftovers[0]);
+        await expect.poll(async () => (await productRows(list, product.name)).length).toBe(leftovers.length - 1);
+        leftovers = await productRows(list, product.name);
       }
     }
-    // Pričakovano 2: seznam je viden in odprt; navedenega izdelka na njem ni.
-    await expect(listCard(page, listName).first()).toBeVisible();
-    await expect(listItemRowsFor(details, product.name)).toHaveCount(0);
-    initialItemCount = await listItemRows(details).count();
+    // Pričakovano 2: seznam je viden med seznami in odprt; navedenega izdelka na njem ni.
+    await expect(page.getByText(listName, { exact: true }).first(), `Seznam »${listName}« ni viden`).toBeVisible();
+    await expect(storeSearchField(page), `Seznam »${listName}« ni odprt (ni iskalnika »Išči izdelek po trgovinah«)`).toBeVisible();
+    expect(await productRows(list, product.name), 'Izdelek je že na seznamu').toHaveLength(0);
+    initialItemCount = await countListItems(list);
   });
 
   await test.step(`Korak 3: V iskalnik »Išči izdelek po trgovinah« vpiši »${searchTerm}«`, async () => {
-    await searchBox(page).fill(searchTerm);
-    await expect(searchBox(page)).toHaveValue(searchTerm);
-    // Pričakovano 3: zadetki z imenom izdelka, trgovino in ceno.
-    const hits = searchHits(details);
-    await expect(hits.first(), 'Pod iskalnikom ni zadetkov').toBeVisible({ timeout: 30_000 });
-    const lines = await hits.locator(':scope > div:nth-child(2)').allInnerTexts();
-    const names = await hits.locator(':scope > div:nth-child(1)').allInnerTexts();
-    for (const [i, line] of lines.entries()) {
-      expect(names[i].trim().length, 'Zadetek nima imena izdelka').toBeGreaterThan(0);
-      expect(line, `Zadetek »${names[i]}« nima trgovine in cene`).toMatch(new RegExp(`^(${STORES.join('|')}) – \\d+\\.\\d{2} €`));
+    const list = await openedList(page, listName);
+    await storeSearchField(page).fill(searchTerm);
+    await expect(storeSearchField(page)).toHaveValue(searchTerm);
+    // Pričakovano 3: pod iskalnikom se prikažejo zadetki z imenom izdelka, trgovino in ceno.
+    await expect.poll(async () => (await searchHits(list)).length, { message: 'Pod iskalnikom ni zadetkov', timeout: 30_000 }).toBeGreaterThan(0);
+    const hitTexts: string[] = [];
+    for (const hit of await searchHits(list)) {
+      const lines = await visibleLines(hit);
+      hitTexts.push(lines.join(' '));
+      expect(lines.some((l) => pricesIn(l).length > 0), `Zadetek »${lines[0]}« nima cene`).toBe(true);
+      // Poleg cene morata biti prikazana vsaj dva podatka: ime izdelka in trgovina.
+      const texts = lines
+        .flatMap((l) => l.split(/\s+–\s+/))
+        .map((t) => t.replace(/\d+(?:[.,]\d+)?\s*€.*$/, '').trim())
+        .filter(Boolean);
+      expect(texts.length, `Zadetek »${lines[0]}« nima imena izdelka in trgovine`).toBeGreaterThanOrEqual(2);
     }
+    // Zadetki morajo biti odziv na iskanje, ne poljuben seznam izdelkov.
+    expect(
+      hitTexts.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase())),
+      `Noben zadetek ne vsebuje »${searchTerm}«`,
+    ).toBe(true);
   });
 
   await test.step(`Korak 4: Klikni zadetek »${product.shortName}« trgovine ${product.store}`, async () => {
-    const hit = searchHits(details)
-      .filter({ hasText: product.name })
-      .filter({ has: page.locator('div', { hasText: new RegExp(`^${product.store} – `) }) });
-    await expect(hit, `Med zadetki ni »${product.name}« (${product.store})`).toHaveCount(1);
-    await hit.click();
+    const list = await openedList(page, listName);
+    const hits = [];
+    for (const hit of await searchHits(list)) {
+      const text = await hit.innerText();
+      if (text.includes(product.name) && new RegExp(`${escapeRegex(product.store)}(?![A-Za-zČŠŽčšž])`).test(text)) hits.push(hit);
+    }
+    expect(hits, `Med zadetki ni »${product.name}« trgovine ${product.store}`).toHaveLength(1);
+    await hits[0].click();
 
-    // Pričakovano 4: izdelek pod trgovino Mercator s ceno 1,65 €.
-    const row = listItemRowsFor(storeGroup(details, product.store), product.name);
-    await expect(row, `Izdelek ni prikazan pod trgovino ${product.store}`).toHaveCount(1);
-    await expect(row).toContainText(priceText(product.price));
+    // Pričakovano 4: izdelek se prikaže na seznamu pod trgovino Mercator s ceno 1,65 €.
+    await expect.poll(async () => (await productRows(list, product.name)).length, { message: 'Izdelek ni bil dodan na seznam' }).toBe(1);
+    await expectAddedOnceWithPrice(list, 'Pričakovano 4');
+    // Dodan je bil natanko en izdelek (in nič drugega).
+    await expect.poll(() => countListItems(list), { message: 'Na seznam ni bil dodan natanko en izdelek' }).toBe(initialItemCount + 1);
   });
 
   await test.step(`Korak 5: Osveži stran in ponovno odpri seznam »${listName}«`, async () => {
     await page.reload();
-    await expect(page.getByRole('heading', { level: 1, name: 'Tvoji nakupovalni seznami' })).toBeVisible({ timeout: 30_000 });
-    await waitForAllLists(page, listsOnProfile + (createdList ? 1 : 0));
-    details = await selectList(page, listName);
+    await expect(newListField(page)).toBeVisible({ timeout: 30_000 });
+    await waitForStableContent(page);
+    const list = await selectList(page, listName);
 
-    // Pričakovano 5: izdelek je še vedno pod Mercator s ceno 1,65 €, natanko enkrat.
-    await expect(listItemRowsFor(details, product.name), 'Izdelek ni na seznamu natanko enkrat').toHaveCount(1);
-    const row = listItemRowsFor(storeGroup(details, product.store), product.name);
-    await expect(row).toHaveCount(1);
-    await expect(row).toContainText(priceText(product.price));
+    // Pričakovano 5: izdelek je še vedno pod trgovino Mercator s ceno 1,65 €, natanko enkrat.
+    await expectAddedOnceWithPrice(list, 'Pričakovano 5 (po osvežitvi)');
+    expect(await countListItems(list), 'Po osvežitvi se je število izdelkov na seznamu spremenilo').toBe(initialItemCount + 1);
   });
 
   await test.step('Korak 6: Klikni rdečo ikono koša pri dodanem izdelku', async () => {
-    await removeItemRow(listItemRowsFor(details, product.name));
-    // Pričakovano 6: izdelka ni več; seznam je v začetnem stanju.
-    await expect(listItemRowsFor(details, product.name)).toHaveCount(0);
-    await expect(listItemRows(details)).toHaveCount(initialItemCount);
-    if (initialItemCount === 0) await expect(details.getByText('Seznam je prazen.')).toBeVisible();
+    const list = await openedList(page, listName);
+    const rows = await productRows(list, product.name);
+    expect(rows, 'Ni vrstice izdelka, ki bi jo lahko odstranili').toHaveLength(1);
+    await removeRow(rows[0]);
+    // Pričakovano 6: izdelka ni več na seznamu (seznam je v začetnem stanju).
+    await expect.poll(async () => (await productRows(list, product.name)).length, { message: 'Izdelek je še vedno na seznamu' }).toBe(0);
+    await expect.poll(() => countListItems(list), { message: 'Seznam ni v začetnem stanju' }).toBe(initialItemCount);
   });
 
-  await test.step('Pogoj po testu: dodani izdelek je trajno odstranjen', async () => {
+  await test.step('Pogoj po testu: dodani izdelek je s seznama odstranjen (tudi po osvežitvi)', async () => {
     await page.reload();
-    await waitForAllLists(page, listsOnProfile + (createdList ? 1 : 0));
-    const after = await selectList(page, listName);
-    await expect(listItemRowsFor(after, product.name)).toHaveCount(0);
-    await expect(listItemRows(after)).toHaveCount(initialItemCount);
-    // Seznam »Testni nakup« ostane (specifikacija predvideva njegovo ponovno uporabo).
-    await expect(listCard(page, listName).first()).toBeVisible();
+    await expect(newListField(page)).toBeVisible({ timeout: 30_000 });
+    await waitForStableContent(page);
+    const list = await selectList(page, listName);
+    expect(await productRows(list, product.name), 'Izdelek je po osvežitvi spet na seznamu').toHaveLength(0);
+    expect(await countListItems(list), 'Seznam po osvežitvi ni v začetnem stanju').toBe(initialItemCount);
   });
 });
