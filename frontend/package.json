@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test tests/funkcionalni --project=chromium",
+    "test:e2e:anja": "playwright test --config=playwright.anja.config.ts --project=chromium",
     "test:e2e:report": "playwright show-report"
   },
   "dependencies": {

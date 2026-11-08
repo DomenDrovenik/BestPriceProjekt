@@ -70,11 +70,16 @@ jobs:
           done
           exit $missing
 
-      - name: 5. Izvajanje Playwright testov (zažene backend in frontend prek webServer)
+      - name: 5. Izvajanje Playwright testov (osnovni sklop)
         working-directory: frontend
         run: npx playwright test tests/funkcionalni --project=chromium
 
-      - name: 6–7. Shranjevanje HTML poročila (tudi ob neuspehu)
+      - name: 6. Izvajanje Playwright testov – tests_Anja
+        if: ${{ always() }}
+        working-directory: frontend
+        run: npx playwright test --config=playwright.anja.config.ts --project=chromium
+
+      - name: 7–8. Shranjevanje HTML poročila (tudi ob neuspehu)
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
@@ -82,4 +87,7 @@ jobs:
           path: |
             frontend/playwright-report/
             frontend/test-results/
+            frontend/playwright-report-Anja/
+            frontend/test-results-Anja/
+            frontend/test-results-Anja/junit.xml
           retention-days: 14

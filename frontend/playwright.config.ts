@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 /**
  * Konfiguracija Playwright Test za BestPrice.
  *
- * Funkcionalni testi TP-01 … TP-05 so v tests/funkcionalni (zagon: npm run test:e2e).
+ * Funkcionalni testi TP-01 … TP-05 so v tests/funkcionalni in tests_Anja/funkcionalni.
+ * Zagona: npm run test:e2e oziroma npm run test:e2e:anja (ločena konfiguracija).
  * Obstoječi testi (tests/test-1.spec.ts) ostanejo v isti mapi in se izvedejo z »npx playwright test«.
  *
  * Spremenljivke okolja (lokalno v frontend/.env.e2e, glej .env.e2e.example):
@@ -19,9 +20,13 @@ import { fileURLToPath } from 'node:url';
  *   E2E_PRODUCT_PRICE   neobvezno: pričakovana cena izdelka (privzeto 1.65), ko se cena v bazi spremeni
  */
 
-const envFile = fileURLToPath(new URL('./.env.e2e', import.meta.url));
-if (fs.existsSync(envFile) && typeof process.loadEnvFile === 'function') {
-  process.loadEnvFile(envFile);
+const envFiles = [
+  fileURLToPath(new URL('./.env.e2e', import.meta.url)),
+  fileURLToPath(new URL('./.env.e2e.example', import.meta.url)),
+];
+if (typeof process.loadEnvFile === 'function') {
+  const envFile = envFiles.find((file) => fs.existsSync(file) && fs.statSync(file).size > 0);
+  if (envFile) process.loadEnvFile(envFile);
 }
 
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:5173';
